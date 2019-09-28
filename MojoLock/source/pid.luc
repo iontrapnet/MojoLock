@@ -1,0 +1,49 @@
+module pid (
+    input clk,  // clock
+    input rst,  // reset
+    input once,
+    output done,
+    input in [16],
+    input s [16],
+    input o [16],
+    input p [16],
+    input i [16],
+    output out [16],
+    output ival [16]
+  ) {
+  .clk(clk) {
+    .rst(rst) {
+      fsm state = {IDLE,PI,ADD};
+      signed dff in_reg [16];
+      signed dff p_reg [24];
+      signed dff i_reg [24];
+      signed dff ival_reg [24];
+      signed dff out_reg [16];
+    }
+  }
+  always {
+    done = 0;
+    out = $signed($signed(out_reg.q) >>> i[15:12]) + o;
+    ival = ival_reg.q[23:8];
+    
+    case (state.q) {
+      state.IDLE:
+        if (once) {
+          in_reg.d = (p == 16h8000) ? (-s) : (in-s);
+          state.d = state.PI;
+        }
+      state.PI:
+        p_reg.d = $signed(p) * in_reg.q;
+        i_reg.d = $signed(i[11:0]) * in_reg.q;
+        state.d = state.ADD;
+      state.ADD:
+        if (i[11:0] == 12h800)
+          ival_reg.d = 0;
+        else
+          ival_reg.d = ival_reg.q + i_reg.q;
+        out_reg.d = ival_reg.q[23:8] + p_reg.q[23:8];
+        done = 1;
+        state.d = state.IDLE;
+    }
+  }
+}

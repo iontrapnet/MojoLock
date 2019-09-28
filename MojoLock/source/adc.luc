@@ -1,0 +1,74 @@
+module adc (
+    input clk,  // clock
+    input rst,  // reset
+    input once,
+    output done,
+    output out [128],
+    output sck,
+    input miso,
+    output ss,
+    output st [2],
+    output reset,
+    input busy
+  ) {
+  .clk(clk) {
+    .rst(rst) {
+      #CLK_DIV(2), #BITS(128) {
+        spi spi;
+      }
+      fsm state = {IDLE,WAIT,ST,SPI};
+      dff start;
+      dff st_reg [2];
+      dff reset_reg;
+      dff timer [16];
+      dff wait [16];
+      dff next [2];
+    }
+  }
+  
+  always {      
+    done = 0;
+    
+    spi.start = start.q;
+    spi.data_in = 0;
+    out = spi.data_out;
+    
+    spi.miso = miso;
+    sck = spi.sck;
+    ss = ~start.q;
+    
+    st = st_reg.q;
+    reset = reset_reg.q;
+    
+    case (state.q) {
+      state.IDLE:
+        if (once) {
+          st_reg.d = 2b00;
+          state.d = state.WAIT;
+          wait.d = 3;
+          next.d = state.ST;
+        }
+      state.WAIT:
+        if (timer.q == wait.q) {
+          if (~busy) {
+            timer.d = 0;
+            state.d = next.q;
+          }
+        } else {
+          timer.d = timer.q + 1;
+        } 
+      state.ST:
+        st_reg.d = 2b11;
+        state.d = state.WAIT;
+        wait.d = 3;
+        next.d = state.SPI;
+      state.SPI:
+        if (spi.new_data) {
+          start.d = 0;
+          done = 1;
+          state.d = state.IDLE;
+        } else
+          start.d = 1;
+    }
+  }
+}

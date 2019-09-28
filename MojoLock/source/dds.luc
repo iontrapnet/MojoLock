@@ -1,0 +1,83 @@
+module dds (
+    input clk,  // clock
+    input rst,  // reset
+    input once,
+    output done,
+    input rom [16],
+    input f [1][16],
+    input p [1][16],
+    output i [1][16],
+    output q [1][16]
+  ) {
+  .clk(clk) {
+    #SIZE(16), #DEPTH(1024) {
+      simple_ram ram;
+    }
+    .rst(rst) {
+      fsm state = {IDLE,RUN,DATA,I0,Q0,/*I1,Q1,*/DONE};
+      dff raddr [12];
+      dff phase [1][20];
+      dff data [2][16];
+      dff neg;
+      dff next [2];
+    }
+  }
+  always {
+    done = 0;
+    i[0] = $signed($signed(data.q[0]) >>> p[0][15:12]);
+    q[0] = data.q[1];
+    //i[1] = $signed($signed(data.q[2]) >>> p[1][15:12]);
+    //q[1] = data.q[3];
+    
+    ram.address = raddr.q[10] ? ~raddr.q[9:0] : raddr.q[9:0];    
+    ram.write_en = 0;
+    ram.write_data = 0;
+    
+    case (state.q) {
+      state.IDLE:
+        if (once) state.d = state.RUN;
+      state.RUN:
+        if (|rom) {
+          ram.address = phase.q[0][9:0];
+          ram.write_en = 1;
+          ram.write_data = rom;
+          if (&phase.q[0][9:0]) {
+            phase.d[0] = 0;
+            //phase.d[1] = 0;
+          } else
+            phase.d[0] = phase.q[0] + 1;
+          state.d = state.Q0;//1;
+        } else {
+          phase.d[0] = |f[0] ? phase.q[0] + f[0] : 0;
+          raddr.d = phase.q[0][19:8];
+          state.d = state.I0;
+        }
+      state.DATA:
+        data.d[next.q] = neg.q ? c{1b0,-ram.read_data} : c{1b1,ram.read_data};
+        state.d = state.Q0 + next.q;
+      state.I0:
+        raddr.d = phase.q[0][19:8] + p[0][11:0];
+        neg.d = raddr.q[11];
+        next.d = 0;
+        state.d = state.DATA;
+     state.Q0:
+        /*phase.d[1] = |f[1] ? phase.q[1] + f[1] : 0;
+        raddr.d = phase.q[1][19:8];
+        neg.d = raddr.q[11];
+        next.d = 1;
+        state.d = state.DATA;
+      state.I1:
+        raddr.d = phase.q[1][19:8] + p[1][11:0];
+        neg.d = raddr.q[11];
+        next.d = 2;
+        state.d = state.DATA;
+      state.Q1:*/
+        neg.d = raddr.q[11];
+        next.d = 1;//3;
+        state.d = state.DATA;
+      state.DONE:
+        done = 1;
+        state.d = state.IDLE;
+    }
+  }
+}

@@ -1,0 +1,53 @@
+module lia (
+    input clk,  // clock
+    input rst,  // reset
+    input once,
+    output done,
+    input in0 [16],
+    input in1 [16],    
+    input s [16],
+    input f [16],
+    output out [16]
+  ) {
+  .clk(clk) {
+    .rst(rst) {
+      fsm state = {IDLE,MIX,FILTER};
+      signed dff in0_reg [16];
+      signed dff in1_reg [16];
+      signed dff mix_reg [24];
+      filter filter;
+    }
+  }
+  always {
+    done = 0;
+    out = (f[3:0] == 0) ? mix_reg.q[23:8] : filter.out;
+    
+    filter.once = 0;
+    filter.in = mix_reg.q[23:8];
+    filter.a1 = f[3:0];
+    filter.a2 = f[3:0];
+    
+    case (state.q) {
+      state.IDLE:
+        if (once) {
+          in0_reg.d = in0 - s;
+          in1_reg.d = $signed($signed(in1) >>> f[7:4]);
+          state.d = state.MIX;
+        }
+      state.MIX:
+        mix_reg.d = in0_reg.q * in1_reg.q; 
+        if (f[3:0] == 0) {
+          done = 1;
+          state.d = state.IDLE;
+        } else {
+          filter.once = 1;
+          state.d = state.FILTER;
+        }
+      state.FILTER:
+        if (filter.done) {
+          done = 1;
+          state.d = state.IDLE;
+        }
+    }
+  }
+}

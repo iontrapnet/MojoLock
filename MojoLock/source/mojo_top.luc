@@ -1,0 +1,306 @@
+module mojo_top (
+    input clk,              // 50MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input cclk,             // configuration clock, AVR ready when high
+    output spi_miso,        // AVR SPI MISO
+    input spi_ss,           // AVR SPI Slave Select
+    input spi_mosi,         // AVR SPI MOSI
+    input spi_sck,          // AVR SPI Clock
+    output spi_channel [4], // AVR general purpose pins (used by default to select ADC channel)
+    input avr_tx,           // AVR TX (FPGA RX)
+    output avr_rx,          // AVR RX (FPGA TX)
+    input avr_rx_busy,      // AVR RX buffer full
+    output dac_sck [2],
+    output dac_mosi [2],
+    output dac_ss [2],
+    output adc_sck,
+    input adc_miso,
+    output adc_ss,
+    output adc_st [2],
+    output adc_reset,
+    input adc_busy   
+  ) {
+  
+  sig rst;                  // reset signal
+  
+  .clk(clk) {
+    coregen_clk coregen_clk;
+  }
+  
+  .clk(coregen_clk.fclk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+    #SIZE(32), #DEPTH(8192) {
+      simple_ram mem;
+    }
+    
+    .rst(rst){
+      // the avr_interface module is used to talk to the AVR for access to the USB port and analog pins
+      #CLK_FREQ(100000000) {
+      // the avr_interface module is used to talk to the AVR for access to the USB port and analog pins
+        avr_interface avr;
+        reg_interface reg;
+      }
+      
+      fsm state = {IDLE,TEST,RUN};
+      
+      dff addr[13];
+      dff size[13](#INIT(13h1FFF));
+      
+      dds dds;
+      dff dds_rom[16];
+      dff dds_f[1][16];
+      dff dds_p[1][16];
+      
+      rom rom;
+      
+      lia lia[3];
+      dff lia_s[3][16];
+      dff lia_f[3][16];
+      
+      pid pid[3];
+      dff pid_s[3][16];
+      dff pid_o[3][16];
+      dff pid_p[3][16];
+      dff pid_i[3][16];
+      
+      adc adc;
+      
+      dac dac[2];
+      
+      dff in[14][16];
+      dff view[3][4];
+      dff in_out[14][4];
+      dff once_done[11][4];
+    }
+  }
+  
+  var i;
+  sig out[15][16];
+  sig once[11];
+  sig done[13];
+  
+  always {
+    coregen_clk.CLKFB_IN = coregen_clk.CLKFB_OUT;
+    
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    
+    // connect inputs of avr
+    avr.cclk = cclk;
+    avr.spi_ss = spi_ss;
+    avr.spi_mosi = spi_mosi;
+    avr.spi_sck = spi_sck;
+    avr.rx = avr_tx;
+    avr.channel = hf;           // ADC is unused so disable
+    avr.tx_block = avr_rx_busy; // block TX when AVR is busy
+    
+    // connect outputs of avr
+    spi_miso = avr.spi_miso;
+    spi_channel = avr.spi_channel;
+    avr_rx = avr.tx;
+    
+    // connect reg interface to avr interface
+    reg.rx_data = avr.rx_data;
+    reg.new_rx_data = avr.new_rx_data;
+    avr.tx_data = reg.tx_data;
+    avr.new_tx_data = reg.new_tx_data;
+    reg.tx_busy = avr.tx_busy;
+    
+    reg.regIn.drdy = 0;                   // default to not ready
+    reg.regIn.data = 32bx;                // don't care
+    
+    mem.write_en = 0;
+    mem.write_data = 0;
+    mem.address = addr.q;
+    
+    dds.rom = dds_rom.q;
+    dds.f = dds_f.q;
+    dds.p = dds_p.q;
+    
+    lia.s = lia_s.q;
+    lia.f = lia_f.q;
+    
+    pid.s = pid_s.q;
+    pid.p = pid_p.q;
+    pid.i = pid_i.q;
+    pid.o = pid_o.q;
+    
+    dac.mode = 0;
+    dac_sck = dac.sck;
+    dac_mosi = dac.mosi;
+    dac_ss = dac.ss;
+    
+    adc.miso = adc_miso;
+    adc.busy = adc_busy;
+    adc_sck = adc.sck;
+    adc_ss = adc.ss;
+    adc_st = adc.st;
+    adc_reset = adc.reset;
+     
+    rom.in = in.q[0];    
+    lia.in0[0] = in.q[1];
+    lia.in1[0] = in.q[2];
+    lia.in0[1] = in.q[3];
+    lia.in1[1] = in.q[4];
+    lia.in0[2] = in.q[5];
+    lia.in1[2] = in.q[6];
+    pid.in[2:0] = in.q[9:7];
+    dac.in0[0] = in.q[10];
+    dac.in1[0] = in.q[11];
+    dac.in0[1] = in.q[12];
+    dac.in1[1] = in.q[13];
+    
+    out[0] = 0;   
+    out[1] = dds.i[0];
+    out[2] = dds.q[0];
+    out[3] = rom.out;
+    out[6:4] = lia.out[2:0];
+    out[9:7] = pid.out[2:0];
+    out[10] = adc.out[127:112];
+    out[11] = adc.out[111:96];
+    out[12] = adc.out[95:80];
+    out[13] = adc.out[79:64];
+    out[14] = out[12] - out[13]; 
+    
+    once = 0;
+    done[0] = 0;
+    done[1] = dds.done;
+    done[2] = rom.done;
+    done[5:3] = lia.done[2:0];
+    done[8:6] = pid.done[2:0];
+    done[9] = adc.done;
+    done[11:10] = dac.done[1:0];
+    done[12] = 1;
+    
+    case (state.q) {
+      state.TEST:
+        out[1] = 0;
+        out[1][9:0] = dds.i[0] + out[7];
+        /*in.d[0] = out[1];
+        in.d[1] = out[3];
+        in.d[2] = out[2];
+        in.d[7] = out[4];
+        once[2:1] = done[2:1];
+        once[5] = done[3];
+        once[0] = done[6];*/
+    }
+    if (state.q) {
+      for (i = 0; i < 14; i++) {
+        in.d[i] = out[in_out.q[i]];
+      }
+      for (i = 0; i < 11; i++) {
+        once[i] = done[once_done.q[i]];
+      }
+    }
+    if (view.q[0] != 4b1111) {
+      if (done[view.q[0]]) {
+        mem.write_en = 1;
+        mem.write_data[31:16] = out[view.q[2]];
+        mem.write_data[15:0] = out[view.q[1]];
+        if (addr.q == size.q) {
+          addr.d = 0;
+          view.d[0] = 4b1111;
+        } else
+          addr.d = addr.q + 1;
+      }
+    }
+    
+    if (reg.regOut.new_cmd) {             // new command
+      if (reg.regOut.write) {             // if write
+        case (reg.regOut.address) {
+          0:
+            dds_rom.d = 0;
+            addr.d = 0;
+            if (reg.regOut.data[31:16]) size.d = reg.regOut.data[31:16];
+            view.d[2] = reg.regOut.data[15:12];
+            view.d[1] = reg.regOut.data[11:8];
+            view.d[0] = reg.regOut.data[7:4];
+            state.d = reg.regOut.data[3:0];
+          1:
+            dds_rom.d = reg.regOut.data[15:0];
+            once[0] = 1;
+          2:
+            dds_f.d[0] = reg.regOut.data[15:0];
+            dds_p.d[0] = reg.regOut.data[31:16];
+          3:
+            in.d[0] = reg.regOut.data[15:0];
+            once[1] = 1;
+          4:
+            lia_s.d[0] = reg.regOut.data[31:16];
+            lia_f.d[0] = reg.regOut.data[15:0];
+          5:
+            lia_s.d[1] = reg.regOut.data[31:16];
+            lia_f.d[1] = reg.regOut.data[15:0];
+          6:
+            lia_s.d[2] = reg.regOut.data[31:16];
+            lia_f.d[2] = reg.regOut.data[15:0];
+          7:
+            pid_s.d[0] = reg.regOut.data[31:16];
+            pid_o.d[0] = reg.regOut.data[15:0];
+          8:
+            pid_p.d[0] = reg.regOut.data[31:16];
+            pid_i.d[0] = reg.regOut.data[15:0];
+          9:
+            pid_s.d[1] = reg.regOut.data[31:16];
+            pid_o.d[1] = reg.regOut.data[15:0];
+          10:
+            pid_p.d[1] = reg.regOut.data[31:16];
+            pid_i.d[1] = reg.regOut.data[15:0];
+          11:
+            pid_s.d[2] = reg.regOut.data[31:16];
+            pid_o.d[2] = reg.regOut.data[15:0];
+          12:
+            pid_p.d[2] = reg.regOut.data[31:16];
+            pid_i.d[2] = reg.regOut.data[15:0];
+          13:
+            dac.mode[0] = 1;
+            dac.in1[0] = reg.regOut.data[23:16];
+            dac.in0[0] = reg.regOut.data[15:0];
+            once[9] = 1;
+          14:
+            dac.mode[1] = 1;
+            dac.in1[1] = reg.regOut.data[23:16];
+            dac.in0[1] = reg.regOut.data[15:0];
+            once[10] = 1;
+          15:
+            for (i = 0; i < 14; i++) in_out.d[i] = 0;
+            for (i = 0; i < 11; i++) once_done.d[i] = 0;
+          default:
+            if (reg.regOut.address[5:4] == 1)
+              in_out.d[reg.regOut.address[3:0]] = reg.regOut.data[3:0];
+            else
+              once_done.d[reg.regOut.address[3:0]] = reg.regOut.data[3:0];
+        }
+      } else {                            // if read
+        case (reg.regOut.address) {
+          0:
+            reg.regIn.data = $signed(mem.read_data);
+            reg.regIn.drdy = 1;
+            if (addr.q == size.q)
+              addr.d = 0;
+            else
+              addr.d = addr.q + 1;
+          1:
+            reg.regIn.data[31:16] = $signed(pid.ival[1]);
+            reg.regIn.data[15:0] = $signed(pid.ival[0]);
+            reg.regIn.drdy = 1;
+          2:
+            //reg.regIn.data[31:16] = $signed(pid.ival[3]);
+            reg.regIn.data[15:0] = $signed(pid.ival[2]);
+            reg.regIn.drdy = 1;
+        }
+      }
+    }    
+    dds.once = once[0];
+    rom.once = once[1];
+    lia.once[2:0] = once[4:2];
+    pid.once[2:0] = once[7:5];
+    adc.once = once[8];
+    dac.once[1:0] = once[10:9];
+    
+    led = 8h0;
+  }
+}
