@@ -1,0 +1,62 @@
+module dac (
+    input clk,  // clock
+    input rst,  // reset
+    input once,
+    output done,    
+    input in [32],
+    input mode,
+    output sck,
+    output mosi,
+    output ss
+  ) {
+  .clk(clk) {
+    .rst(rst) {
+      #CLK_DIV(2), #BITS(24) {
+        spi spi;
+      }
+      fsm state = {IDLE,DAC0,DAC1};
+      dff start;
+      dff cmd [24];
+    }
+  }
+  always {
+    done = 0;
+    
+    spi.start = start.q;
+    spi.data_in = cmd.q;
+    
+    spi.miso = b0;
+    mosi = spi.mosi;
+    sck = spi.sck;
+    ss = ~start.q;
+    
+    case (state.q) {
+      state.IDLE:
+        if (once) {
+          if (mode) {
+            cmd.d = in[23:0];
+            state.d = state.DAC1;
+          } else {
+            cmd.d[23:16] = 8d16;
+            cmd.d[15:0] = in[15:0] + 16h8000;
+            state.d = state.DAC0;
+          }
+        }
+      state.DAC0:
+        if (spi.new_data) {
+          start.d = 0;
+          cmd.d[23:16] = 8d17;
+          cmd.d[15:0] = in[31:16] + 16h8000;
+          state.d = state.DAC1;
+        } else
+          start.d = 1;
+      state.DAC1:
+        if (spi.new_data) {
+          start.d = 0;
+          done = 1;
+          state.d = state.IDLE;
+        } else
+          start.d = 1;
+    }
+  }
+}

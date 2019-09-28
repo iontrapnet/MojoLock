@@ -1,0 +1,35 @@
+module mixer (
+    input clk,  // clock
+    input rst,  // reset
+    input once,
+    output done,
+    input x [16],
+    input y [16],
+    output xy [16]
+  ) {
+  .clk(clk) {
+    .rst(rst) {
+      fsm state = {IDLE,MIX};
+      signed dff x_reg [16];
+      signed dff y_reg [16];
+      signed dff xy_reg [32];
+    }
+  }
+  always {
+    done = 0;
+    xy = xy_reg.q[23:8];
+    
+    case (state.q) {
+      state.IDLE:
+        if (once) {
+          x_reg.d = x;
+          y_reg.d = y;
+          state.d = state.MIX;
+        }
+      state.MIX:
+        xy_reg.d = x_reg.q * y_reg.q;
+        done = 1;
+        state.d = state.IDLE;
+    }
+  }
+}

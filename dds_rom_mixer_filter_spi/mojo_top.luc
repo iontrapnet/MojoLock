@@ -1,0 +1,303 @@
+module mojo_top (
+    input clk,              // 50MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input cclk,             // configuration clock, AVR ready when high
+    output spi_miso,        // AVR SPI MISO
+    input spi_ss,           // AVR SPI Slave Select
+    input spi_mosi,         // AVR SPI MOSI
+    input spi_sck,          // AVR SPI Clock
+    output spi_channel [4], // AVR general purpose pins (used by default to select ADC channel)
+    input avr_tx,           // AVR TX (FPGA RX)
+    output avr_rx,          // AVR RX (FPGA TX)
+    input avr_rx_busy,      // AVR RX buffer full
+    output dac_sck,
+    output dac_mosi,
+    output dac_ss,
+    output adc_sck,
+    input adc_miso,
+    output adc_ss,
+    output adc_st [2],
+    output adc_reset,
+    input adc_busy   
+  ) {
+  
+  sig rst;                  // reset signal
+  
+  .clk(clk) {
+    coregen_clk coregen_clk;
+  }
+  
+  .clk(coregen_clk.fclk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+    #SIZE(32), #DEPTH(4096) {
+      simple_ram mem;
+    }
+    
+    .rst(rst){
+      // the avr_interface module is used to talk to the AVR for access to the USB port and analog pins
+      #CLK_FREQ(100000000) {
+      // the avr_interface module is used to talk to the AVR for access to the USB port and analog pins
+        avr_interface avr;
+        reg_interface reg;
+      }
+      
+      dff leds [8];
+      
+      fsm state = {IDLE,TEST,DDS_DAC,DDS_DAC_FILTER,ADC,DDS_DAC_ADC,DDS_DAC_ADC_MIXER_FILTER,DDS_DAC_ADC_MIXER_FILTER_PID};
+      
+      dff addr [12];
+      
+      dds dds;
+      dff conf [16];
+      dff f [2][16];
+      dff p [2][16];
+      
+      rom rom;
+      
+      mixer mixer;
+      
+      filter filter;
+      dff coef [16];
+      
+      dac dac;
+      dff dac1[17];
+      
+      adc adc;
+      dff offset[16];
+      
+      pid pid;
+      dff pid_s[16];
+      dff pid_p[16];
+      dff pid_i[16];
+      dff pid_o[16];
+      
+      dff in[7][16];
+      dff view[3][4];
+    }
+  }
+  
+  sig out[7][16];
+  sig once[7];
+  sig done[7];
+  
+  always {
+    coregen_clk.CLKFB_IN = coregen_clk.CLKFB_OUT;
+    
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    
+    // connect inputs of avr
+    avr.cclk = cclk;
+    avr.spi_ss = spi_ss;
+    avr.spi_mosi = spi_mosi;
+    avr.spi_sck = spi_sck;
+    avr.rx = avr_tx;
+    avr.channel = hf;           // ADC is unused so disable
+    avr.tx_block = avr_rx_busy; // block TX when AVR is busy
+    
+    // connect outputs of avr
+    spi_miso = avr.spi_miso;
+    spi_channel = avr.spi_channel;
+    avr_rx = avr.tx;
+    
+    // connect reg interface to avr interface
+    reg.rx_data = avr.rx_data;
+    reg.new_rx_data = avr.new_rx_data;
+    avr.tx_data = reg.tx_data;
+    avr.new_tx_data = reg.new_tx_data;
+    reg.tx_busy = avr.tx_busy;
+    
+    reg.regIn.drdy = 0;                   // default to not ready
+    reg.regIn.data = 32bx;                // don't care
+    
+    mem.write_en = 0;
+    mem.write_data = 0;
+    mem.address = addr.q;
+    
+    dds.conf = conf.q;
+    dds.f[0] = f.q[0];
+    dds.f[1] = f.q[1];
+    dds.p[0] = p.q[0];
+    dds.p[1] = p.q[1]; 
+    
+    filter.a1 = coef.q;
+    filter.a2 = coef.q;       
+    
+    dac.mode = 0;
+    dac_sck = dac.sck;
+    dac_mosi = dac.mosi;
+    dac_ss = dac.ss;
+    
+    adc.miso = adc_miso;
+    adc.busy = adc_busy;
+    adc_sck = adc.sck;
+    adc_ss = adc.ss;
+    adc_st = adc.st;
+    adc_reset = adc.reset;
+     
+    pid.s = pid_s.q;
+    pid.p = pid_p.q;
+    pid.i = pid_i.q;
+    pid.o = pid_o.q;
+    
+    rom.in = in.q[0];
+    mixer.x = in.q[1];
+    mixer.y = in.q[2];
+    filter.in = in.q[3];        
+    dac.in[15:0] = in.q[4];
+    dac.in[31:16] = in.q[5];
+    pid.in = in.q[6];
+           
+    out[0] = dds.i[0] - (16h8000 >> p.q[0][15:12]);
+    out[1] = dds.i[1] - (16h8000 >> p.q[1][15:12]);
+    out[2] = rom.out;
+    out[3] = mixer.xy;
+    out[4] = filter.out;
+    out[5] = adc.out[127:112] - offset.q;
+    out[6] = pid.out;
+    
+    once = 0;
+    done[0] = dds.done;
+    done[1] = rom.done;
+    done[2] = mixer.done;
+    done[3] = filter.done;
+    done[4] = dac.done;
+    done[5] = adc.done;
+    done[6] = pid.done;
+    
+    case (state.q) {
+      state.TEST:
+        out[0] = 0;
+        out[0][9:0] = dds.t[0][9:0] + (dds.q[1] >> 13);
+        in.d[3:0] = out[3:0];
+        once[3:1] = done[2:0];
+        once[0] = done[3];
+      state.DDS_DAC:
+        in.d[4] = out[0];
+        in.d[5] = out[1];
+        once[4] = done[0];
+        once[0] = done[4];
+      state.DDS_DAC_FILTER:
+        in.d[3] = out[0];
+        in.d[4] = out[4];
+        in.d[5] = out[1];
+        once[3] = done[0];
+        once[4] = done[3];
+        once[0] = done[4];
+      state.ADC:
+        once[5] = 1;
+      state.DDS_DAC_ADC:
+        in.d[4] = out[0];
+        once[4] = done[0];
+        once[0] = done[4];
+        in.d[5] = out[1];
+        
+        once[5] = done[4];
+      state.DDS_DAC_ADC_MIXER_FILTER:
+        if (dac1.q[16])
+          out[1] = dac1.q[15:0];
+        else
+          out[1] = (dds.t[1] << 3) >> p.q[1][15:12];
+          
+        in.d[4] = out[0];
+        in.d[5] = out[1];
+        once[4] = done[0];
+        once[0] = done[4];
+        
+        in.d[1] = dds.q[0] - 16h8000;
+        in.d[2] = out[5];
+        in.d[3] = out[3];
+        once[5] = done[0];
+        once[2] = done[5];
+        once[3] = done[2];
+      state.DDS_DAC_ADC_MIXER_FILTER_PID:
+        in.d[4] = out[0];
+        in.d[5] = out[6];
+        once[4] = done[0];
+        once[0] = done[4];
+        
+        in.d[1] = dds.q[0] - 16h8000;
+        in.d[2] = out[5];
+        in.d[3] = out[3];
+        in.d[6] = out[4];
+        once[5] = done[0];
+        once[2] = done[5];
+        once[3] = done[2];
+        once[6] = done[3];
+    }
+    
+    if (view.q[0] != 4b1111) {
+      if (done[view.q[0]]) {
+        mem.write_en = 1;
+        mem.write_data[31:16] = out[view.q[2]];
+        mem.write_data[15:0] = out[view.q[1]];
+        addr.d = addr.q + 1;
+        if (&addr.q) view.d[0] = 4b1111;
+      }
+    }
+    
+    if (reg.regOut.new_cmd) {             // new command
+      if (reg.regOut.write) {             // if write
+        case (reg.regOut.address) {
+          0:
+            conf.d = 0;
+            addr.d = 0;
+            view.d[2] = reg.regOut.data[15:12];
+            view.d[1] = reg.regOut.data[11:8];
+            view.d[0] = reg.regOut.data[7:4];
+            state.d = reg.regOut.data[3:0];
+          1:
+            conf.d = reg.regOut.data[15:0];
+            once[0] = 1;
+          2:
+            f.d[0] = reg.regOut.data[15:0];
+            p.d[0] = reg.regOut.data[31:16];
+          3:
+            f.d[1] = reg.regOut.data[15:0];
+            p.d[1] = reg.regOut.data[31:16];
+          4:
+            in.d[0] = reg.regOut.data[15:0];
+            once[1] = 1;
+          5:
+            coef.d = reg.regOut.data[15:0];
+          6:
+            dac.mode = 1;
+            dac.in = reg.regOut.data[23:0];
+            once[4] = 1;
+          7:
+            offset.d = reg.regOut.data[15:0];
+          8:
+            dac1.d = reg.regOut.data[16:0];
+          9:
+            pid_s.d = reg.regOut.data[31:16];
+            pid_o.d = reg.regOut.data[15:0];
+          10:
+            pid_p.d = reg.regOut.data[31:16];
+            pid_i.d = reg.regOut.data[15:0];
+        }
+      } else {                            // if read
+        case (reg.regOut.address) {
+          0:
+            reg.regIn.data = $signed(mem.read_data);
+            reg.regIn.drdy = 1;
+            addr.d = addr.q + 1;
+          1:
+            reg.regIn.data = out[2];
+            reg.regIn.drdy = 1;
+        }
+      }
+    }
+    //led = 8h0;
+    led = leds.q;                         // connect the dff
+    dds.once = once[0];
+    rom.once = once[1];
+    mixer.once = once[2];
+    filter.once = once[3];
+    dac.once = once[4];
+    adc.once = once[5];
+    pid.once = once[6];
+  }
+}

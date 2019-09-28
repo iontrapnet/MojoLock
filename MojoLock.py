@@ -7,7 +7,7 @@ from PyQt4.QtNetwork import *
 from PyQt4.qcustomplot import *
 from Mojo import Mojo
 
-import MojoPDH_Script
+import MojoLock_Script
 import lupa
 L = lupa.LuaRuntime()
 
@@ -17,7 +17,7 @@ def script(lang = ''):
         def script_func(self, *args, **kwargs):
             ret = func(self, *args, **kwargs)
             if not lang or lang == 'python':
-                pyfunc = getattr(MojoPDH_Script, self.__class__.__name__ + '_' + func.__name__, None)
+                pyfunc = getattr(MojoLock_Script, self.__class__.__name__ + '_' + func.__name__, None)
                 if pyfunc:
                     if hasattr(pyfunc, 'next'):
                         pyfunc.send(self, *args)
@@ -37,7 +37,7 @@ def script(lang = ''):
     
 def script_reload(path):
     if path[-3:] == '.py':
-        reload(MojoPDH_Script)
+        reload(MojoLock_Script)
     elif path[-4:] == '.lua':
         L.execute("dofile('" + str(path).replace('\\', '\\\\') + "')")
         
@@ -423,7 +423,7 @@ class PlotCtrl(QCustomPlot):
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
-        self.setWindowTitle('MojoPDH')
+        self.setWindowTitle('MojoLock')
         
         col = QVBoxLayout()
         self.setLayout(col)
