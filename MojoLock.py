@@ -1,10 +1,21 @@
 import os, sys, math, struct
 from functools import wraps
-from PyQt4 import QtCore, QtGui, QtNetwork, qcustomplot
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtNetwork import *
-from PyQt4.qcustomplot import *
+
+PY3 = sys.version_info[0] == 3
+
+if PY3:
+    from PyQt5 import QtCore, QtGui, QtWidgets, QtNetwork
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtNetwork import *
+    from qcustomplot import *
+else:
+    from PyQt4 import QtCore, QtGui, QtNetwork, qcustomplot
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtNetwork import *
+    from PyQt4.qcustomplot import *
 from Mojo import Mojo
 
 import MojoLock_Script
@@ -433,9 +444,11 @@ class Window(QWidget):
         
         self.mojo = Mojo()
         
-        self.ports = EnumCtrl(row, 'Port', self.setPort)
+        self.ports = EnumCtrl(row, 'Port')
         self.ports.setItems(self.mojo.ports())
         self.ports.setValue(-1)
+        self.ports.enum.currentIndexChanged.connect(self.setPort)
+
         
         self.btnLoad = QPushButton('Load')
         row.addWidget(self.btnLoad)

@@ -91,39 +91,39 @@ def mojo_load(port, bitstream, verbose = False, no_verify = True, ram = True, pr
     if ram:
         ser.write(b'R')
         ret = ser.read(1)
-        if verbose and  ret == 'R':
+        if verbose and  ret == b'R':
             print('Mojo is ready to recieve bitstream')
-        elif ret != 'R':
+        elif ret != b'R':
             print('Mojo did not respond correctly! Make sure the port is correct')
             sys.exit(1)
 
     if not ram and no_verify:
         ser.write(b'F')
         ret = ser.read(1)
-        if verbose and  ret == 'R':
+        if verbose and  ret == b'R':
             print('Mojo is ready to recieve bitstream')
-        elif ret != 'R':
+        elif ret != b'R':
             print('Mojo did not respond correctly! Make sure the port is correct')
             sys.exit(1)
 
     if not ram and not no_verify:
         ser.write(b'V')
         ret = ser.read(1)
-        if verbose and  ret == 'R':
+        if verbose and  ret == b'R':
             print('Mojo is ready to recieve bitstream')
-        elif ret != 'R':
+        elif ret != b'R':
             print('Mojo did not respond correctly! Make sure the port is correct')
             sys.exit(1)
 
     buffer = struct.unpack("4B", struct.pack("I", length))
-    buf = ""
+    buf = b''
     for i in buffer:
-        buf+=(chr(i))
+        buf+=bytearray([i])
     ser.write(buf)
     ret = ser.read(1)
-    if verbose and  ret == 'O':
+    if verbose and  ret == b'O':
         print('Mojo acknowledged size of bitstream. Writing bitstream')
-    elif ret != 'O':
+    elif ret != b'O':
         print('Mojo failed to acknowledge size of bitstream. Did not write')
         sys.exit(1)
 
@@ -136,9 +136,9 @@ def mojo_load(port, bitstream, verbose = False, no_verify = True, ram = True, pr
         ser.write(bits)
 
     ret = ser.read(1)
-    if verbose and  ret == 'D':
+    if verbose and  ret == b'D':
         print('Mojo has been flashed')
-    elif ret != 'D':
+    elif ret != b'D':
         print('Mojo failed to flash correctly')
         sys.exit(1)
 
@@ -147,9 +147,9 @@ def mojo_load(port, bitstream, verbose = False, no_verify = True, ram = True, pr
         if verbose:
             print('Verifying Mojo')
         ret = ser.read(1)
-        if  ret == '\xAA' and verbose:
+        if  ret == b'\xAA' and verbose:
             print('First Byte was valid getting flash size.')
-        elif ret != '\xAA':
+        elif ret != b'\xAA':
             print('Flash does not contain valid start byte.')
             sys.exit(1)
         ret = ser.read(4)
@@ -168,9 +168,9 @@ def mojo_load(port, bitstream, verbose = False, no_verify = True, ram = True, pr
     if not ram:
         ser.write(b'L')
         ret = ser.read(1)
-        if verbose and  ret == 'D':
+        if verbose and  ret == b'D':
             print('Mojo has been loaded bitsream')
-        elif ret != 'D':
+        elif ret != b'D':
             print('Mojo failed to load bitstream')
             sys.exit(1)
             
@@ -212,21 +212,21 @@ class Mojo(Task.Task):
 if __name__ == '__main__':    
     port = 'COM3'
     mojo = Mojo()
-    #mojo.load('MojoTest.bin')
-    mojo.open(port)
+    mojo.open(port)    
+    mojo.load('led_wave.bin')
     
-    for i in range(10):
-        #mojo.write(0,range(4096))
-        tic=time.time()
-        mojo.read(0,1000)
-        toc=time.time()-tic
-        print(toc)
-       
-    mojo.close()
-    
-    try:
-        for i in range(10):
-            time.sleep(0.1)
-            print(mojo['read'])
-    except KeyboardInterrupt:
-        mojo.quit()
+#    for i in range(10):
+#        #mojo.write(0,range(4096))
+#        tic=time.time()
+#        mojo.read(0,1000)
+#        toc=time.time()-tic
+#        print(toc)
+#       
+#    mojo.close()
+#    
+#    try:
+#        for i in range(10):
+#            time.sleep(0.1)
+#            print(mojo['read'])
+#    except KeyboardInterrupt:
+#        mojo.quit()

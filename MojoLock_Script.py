@@ -1,6 +1,13 @@
 import __main__, sys, bisect
-#from PyQt4.qcustomplot import *
-import np
+
+PY3 = sys.version_info[0] == 3
+
+if PY3:
+    #from qcustomplot import *
+    import numpy as np
+else:
+    #from PyQt4.qcustomplot import *
+    import np
 
 def CLS(self):
     self.output()
