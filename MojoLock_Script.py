@@ -52,17 +52,22 @@ def TEST(self, wait = 5):
     self.pid0.setSO(150, pid_o)
     WAIT(wait)
     yield 'Testing...'
-    self.pid0.setSO(0, pid_o)
     #pid_s = yield 'PID0 Setpoint'
     #pid_s = (pid_s and int(pid_s)) or 0
     #self.pid0.setSO(pid_s, pid_o)
 
 def LOCK0(self, wait = 0):
-    #self.setState(2)
+    self.lia0.setValue(0, 0, 9)
+    self.pid0.setSO(-2048, 0)
+    self.pid0.setPAI(-32768, 2, -2048)
+    self.pid0.setPAI(-32768, 2, 1)
     self.view.setValue('399')
+    self.X.setValue('PID0')
+    self.Y.setValue('ADC0')
     self.view_all = False
     self.timer_view = 0
     rect = self.plot.rects[(0, 0)]
+    rect.rescale = True
     rect.xy = True
     WAIT(wait)
     lia_o = yield 'Scanning to find LIA0 Offset...'
@@ -82,7 +87,7 @@ def LOCK0(self, wait = 0):
     rect.rescale = False
     rect.axis(1).setRange(lia_o-50, lia_o+200)
     rect.axis(2).setRange(-1000, 1000)
-    rect.axes()[3].setRange(0, 8191)
+    if not PY3: rect.axes()[3].setRange(0, self.size)
     WAIT(wait)
     yield 'Locking...'
     self.pid0.setSO(150, pid_o)
@@ -92,11 +97,17 @@ def LOCK0(self, wait = 0):
     self.view_all = True
 
 def LOCK1(self, wait = 0):
-    #self.setState(2)
+    self.lia1.setValue(0, 0, 9)
+    self.pid1.setSO(-2048, 0)
+    self.pid1.setPAI(-32768, 2, -2048)
+    self.pid1.setPAI(-32768, 2, 1)
     self.view.setValue('370')
+    self.X.setValue('PID1')
+    self.Y.setValue('ADC1')
     self.view_all = False
     self.timer_view = 1
     rect = self.plot.rects[(0, 1)]
+    rect.rescale = True
     rect.xy = True
     WAIT(wait)
     lia_o = yield 'Scanning to find LIA1 Offset...'
@@ -116,7 +127,7 @@ def LOCK1(self, wait = 0):
     rect.rescale = False
     rect.axis(1).setRange(lia_o-50, lia_o+200)
     rect.axis(2).setRange(-1000, 1000)
-    rect.axes()[3].setRange(0, 8191)
+    if not PY3: rect.axes()[3].setRange(0, self.size)
     WAIT(wait)
     yield 'Locking...'
     self.pid1.setSO(150, pid_o)
@@ -126,13 +137,16 @@ def LOCK1(self, wait = 0):
     self.view_all = True
 
 def LOCK2(self, wait = 0):
-    #self.setState(2)
+    self.pid2.setSO(-2048, 0)
+    self.pid2.setPAI(-32768, 2, -2048)
+    self.pid2.setPAI(-32768, 2, 1)
     self.view.setValue('Lamp')
     self.X.setValue('PID2')
     self.Y.setValue('ADC23')
     self.view_all = False
     self.timer_view = 2
     rect = self.plot.rects[(0, 2)]
+    rect.rescale = True
     rect.xy = True
     WAIT(wait)
     pid_o = yield 'Scanning to find PID2 Offset...'
@@ -145,7 +159,7 @@ def LOCK2(self, wait = 0):
     rect.rescale = False
     rect.axis(1).setRange(pid_o-3000, pid_o+3000)
     rect.axis(2).setRange(-1500, 1500)
-    rect.axes()[3].setRange(0, 8191)
+    if not PY3: rect.axes()[3].setRange(0, self.size)
     WAIT(wait)
     yield 'Locking...'
     self.pid2.setSO(150, pid_o)
@@ -154,23 +168,21 @@ def LOCK2(self, wait = 0):
     self.pid2.setSO(0, pid_o)
     self.view_all = True
                     
-Window_doNext = None
 def Window_doRun(self, *args):
-    global Window_doNext
     WAIT(0)
     cmd = self.input()
-    if Window_doNext:
+    if self.doNext:
         try:
-            self.btnRun.setText(Window_doNext.send(cmd))
+            self.btnRun.setText(self.doNext.send(cmd))
         except StopIteration:
-            Window_doNext = None
+            self.doNext = None
             self.btnRun.setText('Run')
     else:
         cmd = cmd.split(' ')
-        Window_doNext = getattr(sys.modules[__name__], cmd[0].upper(), None)
-        if Window_doNext:
-            Window_doNext = Window_doNext(self, *cmd[1:])
-            if Window_doNext: self.btnRun.setText(Window_doNext.next())
+        self.doNext = getattr(sys.modules[__name__], cmd[0].upper(), None)
+        if self.doNext:
+            self.doNext = self.doNext(self, *cmd[1:])
+            if self.doNext: self.btnRun.setText(next(self.doNext))
     self.input('')
 
 def Window_doTimeout(self):
@@ -192,7 +204,6 @@ def find_zero(t, x, y):
     #return o
                     
 def PlotCtrl_setData(self, row, col, x, y):
-    global Window_doNext
     rect = self.rects.get((row, col), None)
     if not rect: return
     window = __main__.window
@@ -206,24 +217,24 @@ def PlotCtrl_setData(self, row, col, x, y):
     #self.setToolTip('hehe')    
     if state == 'TEST':
         if rect.xy:
-            if view == ('', 'DDS', 'PID0', 'ROM'):
-                if Window_doNext: window.input(y.max())
+            if view == ('DDS', 'PID0', 'ROM'):
+                if window.doNext: window.input(y.max())
                 rect.x = x[y.argmin()]
                 rect.y = None
-            elif view == ('', 'DDS', 'PID0', 'LIA0'):
+            elif view == ('DDS', 'PID0', 'LIA0'):
                 o = int((x[y.argmin()]+x[y.argmax()])/2)
-                if Window_doNext: window.input(o)
+                if window.doNext: window.input(o)
                 rect.x = o
                 rect.y = None
     elif state == 'RUN':
         if rect.xy:
             if view in (('399', 'DDS', 'PID0', 'ADC0'), ('370', 'DDS', 'PID1', 'ADC1')):
-                if Window_doNext: window.input(y.min())
+                if window.doNext: window.input(y.min())
                 rect.x = x[y.argmax()]
                 rect.y = None
             elif view in (('399', 'DDS', 'PID0', 'LIA0'), ('370', 'DDS', 'PID1', 'LIA1'), ('Lamp', 'ADC', 'PID2', 'ADC23')):
                 o = int((x[y.argmin()]+x[y.argmax()])/2)
-                if Window_doNext: window.input(o)
+                if window.doNext: window.input(o)
                 rect.x = o
                 rect.y = None
         #rect.xy = False
@@ -251,6 +262,9 @@ def Window_setState(self, state):
     elif state == 'RUN':
         self.plot.resetGrid(1, 3)
         self.view_all = True
+        #self.timer.stop()
+        #self.timer.start(500)
+        #self.size = 4095
         self.timer_view = 0
         self.views = [(0, 0, 'DDS', 'PID0', 'ADC0'), (0, 1, 'DDS', 'PID1', 'ADC1'), (0, 2, 'ADC', 'ADC2', 'ADC3')]
         self.view.setItems(['399', '370', 'Lamp'])

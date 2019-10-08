@@ -444,11 +444,9 @@ class Window(QWidget):
         
         self.mojo = Mojo()
         
-        self.ports = EnumCtrl(row, 'Port')
+        self.ports = EnumCtrl(row, 'Port', self.setPort)
         self.ports.setItems(self.mojo.ports())
         self.ports.setValue(-1)
-        self.ports.enum.currentIndexChanged.connect(self.setPort)
-
         
         self.btnLoad = QPushButton('Load')
         row.addWidget(self.btnLoad)
@@ -461,6 +459,7 @@ class Window(QWidget):
         self.btnInit.clicked.connect(self.doInit)
         
         self.state = EnumCtrl(row, 'State', self.setState)
+        self.size = 8191
         
         self.view = EnumCtrl(row, 'View', self.selectView)
         self.t = EnumCtrl(row, 't', self.setView)
@@ -500,6 +499,7 @@ class Window(QWidget):
         hbox.addWidget(self.btnRun)
         self.btnRun.setFont(QFont("Microsoft YaHei", 12))
         self.btnRun.clicked.connect(self.doRun)
+        self.doNext = None
         self.command = QLineEdit()
         hbox.addWidget(self.command)
         self.command.setFont(QFont("Microsoft YaHei", 11))
@@ -525,6 +525,7 @@ class Window(QWidget):
         self.tasks = ['CLS', 'EVAL', 'TEST', 'LOCK0', 'LOCK1', 'LOCK2']
         self.task.setItems(self.tasks)
         
+        
     def input(self, text = None):
         if text == None:
             return str(self.command.text())
@@ -542,6 +543,8 @@ class Window(QWidget):
             self.console.clear()
     
     def setTask(self, task):
+        self.doNext = None
+        self.btnRun.setText('Run')
         if task != self.task.value(): self.task.setValue(task)
         self.input(self.task.text())
         
@@ -582,14 +585,14 @@ class Window(QWidget):
             once_done = t
         self.mojo.write(32, once_done, True)
             
-    def doView(self, state, t = 15, X = 0, Y = 0):
+    def doView(self, state, t = 0, X = 0, Y = 0):
         if isinstance(t, str):
             t = self.dones.index(t)
         if isinstance(X, str):
             X = self.outs.index(X)
         if isinstance(Y, str):
             Y = self.outs.index(Y)
-        self.mojo.write(0, [16*(16*(16*Y+X)+t)+state])
+        self.mojo.write(0, [65536*self.size+16*(16*(16*Y+X)+t)+state])
     
     @script()                    
     def setState(self, state):
@@ -622,18 +625,17 @@ class Window(QWidget):
             next_view = (self.timer_view+1) % len(self.views)
         else:
             next_view = self.timer_view
-        size = 8192
-        self.mojo.read(0, size, False, True, id = '0'+str(next_view))
+        self.mojo.read(0, self.size, False, True, id = '0'+str(next_view))
         self.mojo.read(1, 1, False, True, id = 1)
         self.mojo.read(2, 1, False, True, id = 2)
         ret0 = self.mojo['read0'+str(self.timer_view)]
         ret1 = self.mojo['read1']
         ret2 = self.mojo['read2']
         if ret0:
-            data = struct.unpack(b'<'+b'h'*2*size, ret0)
+            data = struct.unpack(b'<'+b'h'*2*self.size, ret0)
             x = []
             y = []
-            for i in range(size):
+            for i in range(self.size):
                 x.append(data[2*i])
                 y.append(data[2*i+1])
             view = self.views[self.timer_view]
@@ -655,7 +657,7 @@ class Window(QWidget):
  
     def quit(self):
         self.mojo.quit()
-                
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = Window()
