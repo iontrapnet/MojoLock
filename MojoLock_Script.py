@@ -52,9 +52,7 @@ def TEST(self, wait = 5):
     self.pid0.setSO(150, pid_o)
     WAIT(wait)
     yield 'Testing...'
-    #pid_s = yield 'PID0 Setpoint'
-    #pid_s = (pid_s and int(pid_s)) or 0
-    #self.pid0.setSO(pid_s, pid_o)
+    self.pid0.setSO(0, pid_o)
 
 def LOCK0(self, wait = 0):
     self.lia0.setValue(0, 0, 9)
@@ -217,11 +215,11 @@ def PlotCtrl_setData(self, row, col, x, y):
     #self.setToolTip('hehe')    
     if state == 'TEST':
         if rect.xy:
-            if view == ('DDS', 'PID0', 'ROM'):
+            if view == ('', 'DDS', 'PID0', 'ROM'):
                 if window.doNext: window.input(y.max())
                 rect.x = x[y.argmin()]
                 rect.y = None
-            elif view == ('DDS', 'PID0', 'LIA0'):
+            elif view == ('', 'DDS', 'PID0', 'LIA0'):
                 o = int((x[y.argmin()]+x[y.argmax()])/2)
                 if window.doNext: window.input(o)
                 rect.x = o

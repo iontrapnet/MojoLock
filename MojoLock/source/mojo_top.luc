@@ -195,17 +195,16 @@ module mojo_top (
         once[i] = done[once_done.q[i]];
       }
     }
-    if (view.q[0] != 4b1111) {
-      if (done[view.q[0]]) {
-        mem.write_en = 1;
-        mem.write_data[31:16] = out[view.q[2]];
-        mem.write_data[15:0] = out[view.q[1]];
-        if (addr.q == size.q) {
-          addr.d = 0;
-          view.d[0] = 4b1111;
-        } else
-          addr.d = addr.q + 1;
-      }
+
+    if (done[view.q[0]]) {
+      mem.write_en = 1;
+      mem.write_data[31:16] = out[view.q[2]];
+      mem.write_data[15:0] = out[view.q[1]];
+      if (addr.q == size.q) {
+        addr.d = 0;
+        view.d[0] = 0;
+      } else
+        addr.d = addr.q + 1;
     }
     
     if (reg.regOut.new_cmd) {             // new command
