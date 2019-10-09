@@ -23,24 +23,24 @@ class Task:
         self._task = Queue()
         self._last = {}
         self._lock = Lock()
-        self._event = Event()
+        self._quit = Event()
         self._worker = Thread(target=self._run)
         self._worker.setDaemon(True)
         self._worker.start()
         
     def _run(self):
-        while not self._event.is_set():
+        while not self._quit.is_set():
             call = self._task.get()
             result = getattr(self, call[0])(*call[2:])
             with self._lock:
                 self._last[call[0]+call[1]] = result
             self._task.task_done()
     
-    def join(self):
-        self._event.wait()
+    def wait(self, timeout = 0):
+        self._quit.wait(timeout)
     
     def quit(self):
-        self._event.set()
+        self._quit.set()
         
     def __getitem__(self, item):
         with self._lock:
