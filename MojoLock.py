@@ -446,9 +446,10 @@ class Window(QWidget):
         
         self.mojo = Mojo()
         
-        self.ports = EnumCtrl(row, 'Port', self.setPort)
+        self.ports = EnumCtrl(row, 'Port')
         self.ports.setItems(self.mojo.ports())
         self.ports.setValue(-1)
+        self.ports.enum.currentIndexChanged.connect(self.setPort)
         
         self.btnLoad = QPushButton('Load')
         row.addWidget(self.btnLoad)

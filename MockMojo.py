@@ -222,30 +222,31 @@ class Mojo(Task.Task):
         
         self.dsp = [self.dds,self.rom]+self.lia+self.pid+[self.adc]+self.dac
         self.once = [d.once for d in self.dsp]
-        self.done = [0]+[d.done for d in self.dsp]+[1]
-        #self.once[0] = self.once[1]
-        #self.done[1] = self.done[2]
+        self.done = [Sig(1)]+[d.done for d in self.dsp]+[Sig(1,1)]
         self.IN = [self.rom.IN,self.lia[0].IN0,self.lia[0].IN1,self.lia[1].IN0,
             self.lia[1].IN1,self.lia[2].IN0,self.lia[2].IN1]+[p.IN for p in self.pid]\
             +[self.dac[0].IN0,self.dac[0].IN1,self.dac[1].IN0,self.dac[1].IN1]
-        self.OUT = [0,self.dds.i[0],self.dds.q[0],self.rom.OUT]+[l.OUT for l in self.lia]+[p.OUT for p in self.pid]+self.adc.OUT
-        
-        self.OUT[1] = Sig(10,signed=False)
-        self.OUT[1] += self.IN[0]
-        self.OUT[2] += self.IN[2]
-        self.OUT[3] += self.IN[1]
-        self.OUT[4] += self.IN[7] 
-        self.done[1] += self.once[1]
-        self.done[2] += self.once[2]
-        self.done[3] += self.once[5]
-        self.done[6] += self.once[0]
+        self.OUT = [Sig(16),self.dds.i[0],self.dds.q[0],self.rom.OUT]+[l.OUT for l in self.lia]+[p.OUT for p in self.pid]+self.adc.OUT
+
+        if False:
+            self.OUT[1] += self.IN[0]
+            self.OUT[2] += self.IN[2]
+            self.OUT[3] += self.IN[1]
+            self.OUT[4] += self.IN[7] 
+            self.done[1] += self.once[1]
+            self.done[2] += self.once[2]
+            self.done[3] += self.once[5]
+            self.done[6] += self.once[0]
         
     def run(self):
         while not self._quit.is_set():
             if self.state > 0:
                 for d in self.dsp:
                     d.run()
-                self.OUT[1] <= int(self.dds.i[0]) + int(self.OUT[7])
+                if self.state == 1:
+                    if self.OUT[1] == self.dds.i[0]:
+                        self.OUT[1] = Sig(10,signed=False)
+                    self.OUT[1] <= int(self.dds.i[0]) + int(self.OUT[7])
                 if abs(self.done[self.view[0]]):
                     self.mem[self.addr] = struct.unpack(b'<i',struct.pack(b'<HH',
                             abs(self.OUT[self.view[1]]),abs(self.OUT[self.view[2]])))[0]
@@ -292,6 +293,10 @@ class Mojo(Task.Task):
             f, s = struct.unpack(b'<hh', struct.pack(b'<i', x))
             self.lia[0].S <= s 
             self.lia[0].F <= f
+        elif addr == 5:
+            pass
+        elif addr == 6:
+            pass
         elif addr == 7:
             o, s = struct.unpack(b'<hh', struct.pack(b'<i', x))
             self.pid[0].S <= s 
@@ -300,6 +305,28 @@ class Mojo(Task.Task):
             i, p = struct.unpack(b'<hh', struct.pack(b'<i', x))
             self.pid[0].P <= p
             self.pid[0].I <= i
+        elif addr == 9:
+            pass
+        elif addr == 10:
+            pass
+        elif addr == 11:
+            pass
+        elif addr == 12:
+            pass
+        elif addr == 13:
+            pass
+        elif addr == 14:
+            pass
+        elif addr == 15:
+            for out in self.OUT:
+                out.out.clear()
+            for done in self.done:
+                done.out.clear()
+        else:
+            if addr & 0x10:
+                self.OUT[x & 0xF] += self.IN[addr & 0xF]
+            else:
+                self.done[x & 0xF] += self.once[addr & 0xF]
     
     @Task.task        
     def write(self, addr, data, increment=False, binary=False, id=''):

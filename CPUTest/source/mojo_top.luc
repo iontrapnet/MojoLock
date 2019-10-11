@@ -1,0 +1,238 @@
+global Inst {
+  const NOP = 4d0;
+  const OUT = 4d1;
+  const WAIT = 4d2;
+  const SET = 4d3;
+  const LOOP = 4d4;
+  //const MSBOUT = 4d5;
+  const COPY = 4d5;
+  const IN = 4d6;
+  //const SAVE = 4d7;
+  const ADD = 4d7;
+}
+module mojo_top (
+    input clk,              // 50MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input cclk,             // configuration clock, AVR ready when high
+    output spi_miso,        // AVR SPI MISO
+    input spi_ss,           // AVR SPI Slave Select
+    input spi_mosi,         // AVR SPI MOSI
+    input spi_sck,          // AVR SPI Clock
+    output spi_channel [4], // AVR general purpose pins (used by default to select ADC channel)
+    input avr_tx,           // AVR TX (FPGA RX)
+    output avr_rx,          // AVR RX (FPGA TX)
+    input avr_rx_busy,       // AVR RX buffer full
+    output sck,
+    output ss,
+    output mosi,
+    input miso,
+    output reset,
+    output st0,
+    output st1
+  ) {
+  
+  sig rst;                  // reset signal    
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+    #SIZE(16), #DEPTH(256) {
+      simple_ram ram;
+    }
+    #SIZE(16), #DEPTH(256) {
+      simple_ram mem;
+    }
+    
+    .rst(rst) {
+      avr_interface avr;
+      reg_interface reg;
+      
+      dff led_reg[8]; // storage for LED value
+      dff sck_reg;
+      dff ss_reg;
+      dff mosi_reg;
+      dff reset_reg;
+      dff st0_reg;
+      dff st1_reg;
+      
+      dff cpu_reg[16][8]; // CPU Registers
+      dff timer[24];
+      dff running;
+      dff delay[2];
+      //dff out[12];
+      //dff ram[256][16];
+    }
+  }
+  
+  //instRom instRom;
+  sig op[4];        // opcode
+  sig inst[16];
+  
+  always {
+    reset_cond.in = ~rst_n;   // input raw inverted reset signal
+    rst = reset_cond.out;     // conditioned reset
+    
+    spi_miso = bz;            // not using SPI
+    // connect inputs of avr
+    avr.cclk = cclk;
+    avr.spi_ss = spi_ss;
+    avr.spi_mosi = spi_mosi;
+    avr.spi_sck = spi_sck;
+    avr.rx = avr_tx;
+    avr.channel = hf;           // ADC is unused so disable
+    avr.tx_block = avr_rx_busy; // block TX when AVR is busy
+    
+    // connect outputs of avr
+    spi_miso = avr.spi_miso;
+    spi_channel = avr.spi_channel;
+    avr_rx = avr.tx;
+    
+    // connect reg interface to avr interface
+    reg.rx_data = avr.rx_data;
+    reg.new_rx_data = avr.new_rx_data;
+    avr.tx_data = reg.tx_data;
+    avr.new_tx_data = reg.new_tx_data;
+    reg.tx_busy = avr.tx_busy;
+    
+    reg.regIn.drdy = 0;                   // default to not ready
+    reg.regIn.data = 32bx;                // don't care
+    
+    led = led_reg.q;          // connect LEDs to led_reg
+    ss =  ~ss_reg.q;
+    sck = sck_reg.q;
+    mosi = mosi_reg.q;
+    reset = reset_reg.q;
+    st0 = st0_reg.q;
+    st1 = st1_reg.q;
+        
+    ram.write_en = 0;
+    ram.write_data = 0;
+    mem.write_en = 0;
+    mem.write_data = 0;
+    
+    //instRom.address = cpu_reg.q[0];
+    ram.address = cpu_reg.q[0]; // reg 0 is program counter
+    inst = ram.read_data;
+    //inst = ram.q[cpu_reg.q[0]];
+    mem.address = cpu_reg.q[1];
+    
+    if (running.q) {
+      if (delay.q) {
+        delay.d = delay.q - 1;
+        op = 0;
+      } else {
+        cpu_reg.d[0] = cpu_reg.q[0] + 1;      // increment PC by default        
+        op = inst[15:12];     // opcode is top 4 bits;
+      }
+      
+      // Perform the operation
+      case (op) {
+        Inst.OUT:
+          //out.d = inst[11:0];
+          case (inst[11:8]) {
+            0: led_reg.d = inst[7:0];
+            1: led_reg.d = cpu_reg.q[inst[3:0]];
+            2: sck_reg.d = inst[0];
+            3: ss_reg.d = inst[0];
+            4:
+              if (inst[3]) {
+                mosi_reg.d = cpu_reg.q[inst[7:4]][7];
+                cpu_reg.d[inst[7:4]] = c{cpu_reg.q[inst[7:4]][6:0],0};
+              } else
+                mosi_reg.d = cpu_reg.q[inst[7:4]][inst[2:0]];
+            5:
+              mem.write_en = 1;
+              mem.write_data = c{cpu_reg.q[inst[7:4]],cpu_reg.q[inst[3:0]]};
+            6: reset_reg.d = inst[0];
+            7: st0_reg.d = inst[0];
+            8: st1_reg.d = inst[0];
+          }
+        Inst.WAIT:
+          timer.d = timer.q + 1;
+          if (timer.q[23:12] < inst[11:0]) {
+            cpu_reg.d[0] = cpu_reg.q[0] - 1;
+            delay.d = 1;
+          } else {
+            timer.d = 0;
+          }
+        Inst.SET:
+          cpu_reg.d[inst[11:8]] = inst[7:0];
+        Inst.LOOP:
+          if (cpu_reg.q[inst[11:8]] != 0) {
+            cpu_reg.d[inst[11:8]] = cpu_reg.q[inst[11:8]] - 1;
+            cpu_reg.d[0] = inst[7:0];
+            delay.d = 1;
+          }
+        /*Inst.MSBOUT:
+          mosi_reg.d = cpu_reg.q[inst[3:0]][7];
+          cpu_reg.d[inst[3:0]] = c{cpu_reg.q[inst[3:0]][6:0],0};*/
+        Inst.COPY:
+          cpu_reg.d[inst[3:0]] = cpu_reg.q[inst[11:8]];
+        Inst.IN:
+          case (inst[11:8]) {
+            0: 
+              if (inst[3])
+                cpu_reg.d[inst[7:4]] = led_reg.q;
+              else
+                cpu_reg.d[inst[7:4]][inst[2:0]] = led_reg.q[inst[2:0]];
+            1:
+              if (inst[3])
+                cpu_reg.d[inst[7:4]] = c{cpu_reg.q[inst[7:4]][6:0],miso};
+              else
+                cpu_reg.d[inst[7:4]][inst[2:0]] = miso;
+          }
+        /*Inst.SAVE:
+          if (inst[3:0]) {
+            mem.address = cpu_reg.q[inst[3:0]];
+            cpu_reg.d[1] = cpu_reg.q[inst[3:0]];
+          }
+          mem.write_en = 1;
+          mem.write_data = c{cpu_reg.q[inst[11:8]],cpu_reg.q[inst[7:4]]};*/
+        Inst.ADD:
+          cpu_reg.d[inst[3:0]] = cpu_reg.q[inst[11:8]] + cpu_reg.q[inst[7:4]];
+        }
+    }
+    
+    /*case (out.q[11:8]) {
+      0: led_reg.d = out.q[7:0];
+      1: led_reg.d = ~out.q[7:0];
+      2: sck_reg.d = out.q[0];
+      3: ss_reg.d = out.q[0];
+      4: mosi_reg.d = out.q[0];
+    }*/
+    
+    if (reg.regOut.new_cmd) {             // new command
+      if (reg.regOut.write) {             // if write
+        case (reg.regOut.address) {
+          0:
+            ram.write_en = 1;
+            //ram.write_data = instRom.inst;
+            ram.write_data = reg.regOut.data[15:0];
+            //ram.d[cpu_reg.q[0]] = instRom.inst;
+            cpu_reg.d[0] = cpu_reg.q[0] + 1;
+          1:
+            running.d = 0;
+            cpu_reg.d[0] = reg.regOut.data[7:0];
+          2:
+            running.d = 1;
+            cpu_reg.d[0] = reg.regOut.data[7:0];
+          3:
+            cpu_reg.d[1] = reg.regOut.data[7:0];
+        }
+      } else {                            // if read
+        case (reg.regOut.address) {
+          0:
+            reg.regIn.data = ram.read_data;
+            reg.regIn.drdy = 1;
+            cpu_reg.d[0] = cpu_reg.q[0] + 1;
+          1:
+            reg.regIn.data = mem.read_data;
+            reg.regIn.drdy = 1;
+            cpu_reg.d[1] = cpu_reg.q[1] + 1;
+        }
+      }
+    }
+  }
+}
