@@ -80,11 +80,8 @@ def display_progress(p, width=30):
                      ("] (%d%%)" % int(100 * p)))
     sys.stdout.flush()
         
-def mojo_load(port, bitstream, verbose = False, no_verify = True, ram = True, progress = False):
+def mojo_load(port, bits, verbose = False, no_verify = True, ram = True, progress = False):
     ser = serial.Serial(port, 115200, timeout=10)
-    
-    file = open(bitstream, 'rb')
-    bits = file.read()
     length = len(bits)
     reboot_mojo(ser, verbose)
     
@@ -175,7 +172,9 @@ def mojo_load(port, bitstream, verbose = False, no_verify = True, ram = True, pr
             sys.exit(1)
             
     ser.close()
-    
+
+import Pyro4
+@Pyro4.expose    
 class Mojo(Task.Task):
     def __init__(self):
         Task.Task.__init__(self)
@@ -210,10 +209,23 @@ class Mojo(Task.Task):
         if self.port: return mojo_read(self.port, addr, n, increment, binary)
                
 if __name__ == '__main__':    
-    port = 'COM3'
+    #import zerorpc
+    #s = zerorpc.Server(Mojo())
+    #s.bind('tcp://0.0.0.0:8000')
+    #s.run()
+
     mojo = Mojo()
-    mojo.open(port)    
-    mojo.load('led_wave.bin')
+    daemon = Pyro4.Daemon('192.168.1.2',8000)
+    ns = Pyro4.locateNS()
+    uri = daemon.register(mojo)
+    ns.register('mojo',uri)
+    daemon.requestLoop()
+
+#    port = 'COM3'
+#    mojo = Mojo()
+#    mojo.open(port)    
+#    with f=open('led_wave.bin')
+#        mojo.load(f.read())
     
 #    for i in range(10):
 #        #mojo.write(0,range(4096))
