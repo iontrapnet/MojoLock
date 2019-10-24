@@ -1,2 +1,4 @@
 lupa
 pyserial
+pyro4
+dill
