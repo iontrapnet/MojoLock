@@ -1,0 +1,218 @@
+module instRom (
+    input address[8],
+    output inst[16]
+  ) {
+
+  always {
+    inst = c{Inst.NOP, 12b0};
+
+    case (address) {
+      0: inst = c{Inst.SET, 4d8, 8d2};
+      
+      1: inst = c{Inst.OUT, 4d0, 8d2};
+      2: inst = c{Inst.WAIT, 12hf};
+      
+      3: inst = c{Inst.OUT, 4d0, 8d8};
+      4: inst = c{Inst.WAIT, 12hf};
+      
+      5: inst = c{Inst.LOOP, 4d8, 8d1};              
+      
+      6: inst = c{Inst.OUT, 4d0, 8d128};
+      7: inst = c{Inst.WAIT, 12hf};
+        
+      8: inst = c{Inst.SET, 4d9, 8d255};
+      
+      10: inst = c{Inst.OUT, 4d3, 8d1};
+      11: inst = c{Inst.SET, 4d8, 8d15};
+      12: inst = c{Inst.COPY, 4d9, 8d10};
+      
+      //14: inst = c{Inst.MSBOUT, 4d4, 8d10};
+      15: inst = c{Inst.OUT, 4d2, 8d1};
+      16: inst = c{Inst.OUT, 4d2, 8d0};
+          
+      17: inst = c{Inst.LOOP, 4d8, 8d13};
+      
+      18: inst = c{Inst.OUT, 4d3, 8d0};
+        
+      19: inst = c{Inst.LOOP, 4d9, 8d9};
+    }
+    
+    /*case (address) {
+      0: inst = c{Inst.OUT, 4d0, 8d2};
+      1: inst = c{Inst.WAIT, 12hfff};
+      2: inst = c{Inst.OUT, 4d0, 8d8};
+      3: inst = c{Inst.WAIT, 12hfff};
+    }*/
+    
+    /*case (address) {
+      0: inst = c{Inst.SET, 4d8, 8d2};
+      
+      1: inst = c{Inst.OUT, 4d0, 8d2};
+      2: inst = c{Inst.WAIT, 12hff};
+      
+      3: inst = c{Inst.OUT, 4d0, 8d8};
+      4: inst = c{Inst.WAIT, 12hff};
+      
+      5: inst = c{Inst.LOOP, 4d8, 8d1};              
+      
+      6: inst = c{Inst.OUT, 4d0, 8d128};
+      7: inst = c{Inst.WAIT, 12hfff};
+    }*/
+    
+    /*case (address) {
+      0: inst = c{Inst.OUT, 4d3, 8d1};
+         
+      1: inst = c{Inst.SET, 4d8, 8d15};
+      2: inst = c{Inst.SET, 4d9, 8d105};
+      
+      4: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      5: inst = c{Inst.OUT, 4d2, 8d1};
+      6: inst = c{Inst.OUT, 4d2, 8d0};
+          
+      7: inst = c{Inst.LOOP, 4d8, 8d3};
+        
+      8: inst = c{Inst.OUT, 4d3, 8d0};
+   }*/
+    
+   /*case (address) {
+      0: inst = c{Inst.OUT, 4d3, 8d1};
+      1: inst = c{Inst.SET, 4d9, 8d100};
+        
+      11: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      12: inst = c{Inst.OUT, 4d2, 8d1};
+      13: inst = c{Inst.OUT, 4d2, 8d0};
+      
+      14: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      15: inst = c{Inst.OUT, 4d2, 8d1};
+      16: inst = c{Inst.OUT, 4d2, 8d0};
+      
+      17: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      18: inst = c{Inst.OUT, 4d2, 8d1};
+      19: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      20: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      21: inst = c{Inst.OUT, 4d2, 8d1};
+      22: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      23: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      24: inst = c{Inst.OUT, 4d2, 8d1};
+      25: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      26: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      27: inst = c{Inst.OUT, 4d2, 8d1};
+      28: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      29: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      30: inst = c{Inst.OUT, 4d2, 8d1};
+      31: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      32: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      33: inst = c{Inst.OUT, 4d2, 8d1};
+      34: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      35: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      36: inst = c{Inst.OUT, 4d2, 8d1};
+      37: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      38: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      39: inst = c{Inst.OUT, 4d2, 8d1};
+      40: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      41: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      42: inst = c{Inst.OUT, 4d2, 8d1};
+      43: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      44: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      45: inst = c{Inst.OUT, 4d2, 8d1};
+      46: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      47: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      48: inst = c{Inst.OUT, 4d2, 8d1};
+      49: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      50: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      51: inst = c{Inst.OUT, 4d2, 8d1};
+      52: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      53: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      54: inst = c{Inst.OUT, 4d2, 8d1};
+      55: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      56: inst = c{Inst.MSBOUT, 4d4, 8d9};
+      57: inst = c{Inst.OUT, 4d2, 8d1};
+      58: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      59: inst = c{Inst.OUT, 4d3, 8d0};
+   }*/
+    
+   /*case (address) {
+      0: inst = c{Inst.OUT, 4d3, 8d1};
+      
+      1: inst = c{Inst.OUT, 4d4, 8d0};
+      2: inst = c{Inst.OUT, 4d2, 8d1};
+      3: inst = c{Inst.OUT, 4d2, 8d0};
+      
+      4: inst = c{Inst.OUT, 4d4, 8d1};
+      5: inst = c{Inst.OUT, 4d2, 8d1};
+      6: inst = c{Inst.OUT, 4d2, 8d0};
+      
+      7: inst = c{Inst.OUT, 4d4, 8d0};
+      8: inst = c{Inst.OUT, 4d2, 8d1};
+      9: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      10: inst = c{Inst.OUT, 4d4, 8d0};
+      11: inst = c{Inst.OUT, 4d2, 8d1};
+      12: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      13: inst = c{Inst.OUT, 4d4, 8d0};
+      14: inst = c{Inst.OUT, 4d2, 8d1};
+      15: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      16: inst = c{Inst.OUT, 4d4, 8d0};
+      17: inst = c{Inst.OUT, 4d2, 8d1};
+      18: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      19: inst = c{Inst.OUT, 4d4, 8d0};
+      20: inst = c{Inst.OUT, 4d2, 8d1};
+      21: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      22: inst = c{Inst.OUT, 4d4, 8d0};
+      23: inst = c{Inst.OUT, 4d2, 8d1};
+      24: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      25: inst = c{Inst.OUT, 4d4, 8d0};
+      26: inst = c{Inst.OUT, 4d2, 8d1};
+      27: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      28: inst = c{Inst.OUT, 4d4, 8d0};
+      29: inst = c{Inst.OUT, 4d2, 8d1};
+      30: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      31: inst = c{Inst.OUT, 4d4, 8d0};
+      32: inst = c{Inst.OUT, 4d2, 8d1};
+      33: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      34: inst = c{Inst.OUT, 4d4, 8d0};
+      35: inst = c{Inst.OUT, 4d2, 8d1};
+      36: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      37: inst = c{Inst.OUT, 4d4, 8d0};
+      38: inst = c{Inst.OUT, 4d2, 8d1};
+      39: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      40: inst = c{Inst.OUT, 4d4, 8d0};
+      41: inst = c{Inst.OUT, 4d2, 8d1};
+      42: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      43: inst = c{Inst.OUT, 4d4, 8d0};
+      44: inst = c{Inst.OUT, 4d2, 8d1};
+      45: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      46: inst = c{Inst.OUT, 4d4, 8d0};
+      47: inst = c{Inst.OUT, 4d2, 8d1};
+      48: inst = c{Inst.OUT, 4d2, 8d0};
+        
+      49: inst = c{Inst.OUT, 4d3, 8d0};
+   }*/
+  }
+}

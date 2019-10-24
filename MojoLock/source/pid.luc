@@ -33,7 +33,7 @@ module pid (
           state.d = state.PI;
         }
       state.PI:
-        p_reg.d = $signed(p) * in_reg.q;
+        p_reg.d = (p == 16h8000) ? 0 : ($signed(p) * in_reg.q);
         i_reg.d = $signed(i[11:0]) * in_reg.q;
         state.d = state.ADD;
       state.ADD:

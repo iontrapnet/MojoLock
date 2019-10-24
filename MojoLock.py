@@ -17,6 +17,7 @@ else:
     from PyQt4.QtNetwork import *
     from PyQt4.qcustomplot import *
 from Mojo import Mojo
+FPS = 1
 
 import MojoLock_Script
 import lupa
@@ -433,6 +434,7 @@ class PlotCtrl(QCustomPlot):
     
 class Window(QWidget):
     def __init__(self):
+        global FPS
         super(Window, self).__init__()
         self.setWindowTitle('MojoLock')
         
@@ -444,9 +446,10 @@ class Window(QWidget):
         
         self.mojo = Mojo()
         
-        self.ports = EnumCtrl(row, 'Port', self.setPort)
+        self.ports = EnumCtrl(row, 'Port')
         self.ports.setItems(self.mojo.ports())
         self.ports.setValue(-1)
+        self.ports.enum.currentIndexChanged.connect(self.setPort)
         
         self.btnLoad = QPushButton('Load')
         row.addWidget(self.btnLoad)
@@ -511,7 +514,7 @@ class Window(QWidget):
         
         self.timer = QTimer()
         self.timer.timeout.connect(self.doTimeout)
-        self.timer.start(1000)
+        self.timer.start(1000/FPS)
         self.timer_view = 0
         
         self.states = ['IDLE', 'TEST', 'RUN']

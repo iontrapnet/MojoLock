@@ -53,7 +53,8 @@ module dds (
           state.d = state.I0;
         }
       state.DATA:
-        data.d[next.q] = neg.q ? c{1b0,-ram.read_data} : c{1b1,ram.read_data};
+        //data.d[next.q] = neg.q ? c{1b0,-ram.read_data} : c{1b1,ram.read_data};
+        data.d[next.q] = neg.q ? -ram.read_data : ram.read_data;
         state.d = state.Q0 + next.q;
       state.I0:
         raddr.d = phase.q[0][19:8] + p[0][11:0];
