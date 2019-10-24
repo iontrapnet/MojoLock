@@ -1,4 +1,4 @@
-import sys, time, struct, serial
+import os, sys, time, struct, serial
 from serial.tools import list_ports
 import Task
 
@@ -80,8 +80,14 @@ def display_progress(p, width=30):
                      ("] (%d%%)" % int(100 * p)))
     sys.stdout.flush()
         
-def mojo_load(port, bits, verbose = False, no_verify = True, ram = True, progress = False):
+def mojo_load(port, path, verbose = False, no_verify = True, ram = True, progress = False):
     ser = serial.Serial(port, 115200, timeout=10)
+    try:
+        f = open(path,'rb')
+    except:
+        path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.basename(os.path.normpath(path.replace('\\','/'))))
+        f = open(path,'rb')
+    bits = f.read()
     length = len(bits)
     reboot_mojo(ser, verbose)
     
@@ -182,7 +188,7 @@ class Mojo(Task.Task):
     
     @staticmethod
     def ports():
-        return mojo_ports.keys()
+        return [i for i in mojo_ports.keys()]
         
     def open(self, port):
         if port:
@@ -207,19 +213,20 @@ class Mojo(Task.Task):
     @Task.task
     def read(self, addr, n, increment=False, binary=False):
         if self.port: return mojo_read(self.port, addr, n, increment, binary)
-               
+    
 if __name__ == '__main__':    
+    Pyro4.config.SERIALIZER = 'pickle'
+    Pyro4.SERIALIZERS_ACCEPTED = 'pickle'
+    daemon = Pyro4.Daemon('192.168.1.2',8000)                
+    ns = Pyro4.locateNS('192.168.1.2',8001)                  
+    uri = daemon.register(Mojo())
+    ns.register("mojo", uri) 
+    daemon.requestLoop()   
+
     #import zerorpc
     #s = zerorpc.Server(Mojo())
     #s.bind('tcp://0.0.0.0:8000')
     #s.run()
-
-    mojo = Mojo()
-    daemon = Pyro4.Daemon('192.168.1.2',8000)
-    ns = Pyro4.locateNS()
-    uri = daemon.register(mojo)
-    ns.register('mojo',uri)
-    daemon.requestLoop()
 
 #    port = 'COM3'
 #    mojo = Mojo()

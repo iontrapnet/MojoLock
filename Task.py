@@ -18,6 +18,8 @@ def task(func):
         self._task.put((name, str(id))+args)
     return wrapper
     
+import Pyro4
+@Pyro4.expose
 class Task:
     def __init__(self):
         self._task = Queue()
@@ -42,6 +44,6 @@ class Task:
     def quit(self):
         self._quit.set()
         
-    def __getitem__(self, item):
+    def get(self, item):
         with self._lock:
             return self._last.get('_'+item)
