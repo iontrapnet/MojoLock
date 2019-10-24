@@ -16,7 +16,25 @@ else:
     from PyQt4.QtGui import *
     from PyQt4.QtNetwork import *
     from PyQt4.qcustomplot import *
-from Mojo import Mojo
+if False:
+    from Mojo import Mojo
+    mojo = Mojo()
+else:
+    import Pyro4
+    Pyro4.config.SERIALIZER = 'pickle'
+    Pyro4.SERIALIZERS_ACCEPTED = 'pickle'
+    mojo = Pyro4.Proxy('PYRONAME:mojo@192.168.1.2:8001')
+    
+    #import zerorpc
+    #conn = zerorpc.Client()
+    #conn.connect('tcp://192.168.1.2:8000')
+    #mojo = conn
+    
+    #import rpyc
+    #conn = rpyc.classic.connect('192.168.1.2', 8000)
+    #conn.modules.sys.path.append('/home/tiqs/iontrapnet/MojoLock')
+    #conn.execute('import Mojo')
+    #mojo = conn.modules.Mojo.Mojo()
 FPS = 1
 
 import MojoLock_Script
@@ -444,7 +462,7 @@ class Window(QWidget):
         row = QHBoxLayout()
         col.addLayout(row)
         
-        self.mojo = Mojo()
+        self.mojo = mojo
         
         self.ports = EnumCtrl(row, 'Port')
         self.ports.setItems(self.mojo.ports())
@@ -631,9 +649,9 @@ class Window(QWidget):
         self.mojo.read(0, self.size, False, True, id = '0'+str(next_view))
         self.mojo.read(1, 1, False, True, id = 1)
         self.mojo.read(2, 1, False, True, id = 2)
-        ret0 = self.mojo['read0'+str(self.timer_view)]
-        ret1 = self.mojo['read1']
-        ret2 = self.mojo['read2']
+        ret0 = self.mojo.get('read0'+str(self.timer_view))    
+        ret1 = self.mojo.get('read1')
+        ret2 = self.mojo.get('read2')  
         if ret0:
             data = struct.unpack(b'<'+b'h'*2*self.size, ret0)
             x = []
