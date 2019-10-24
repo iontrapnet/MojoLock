@@ -16,7 +16,7 @@ else:
     from PyQt4.QtGui import *
     from PyQt4.QtNetwork import *
     from PyQt4.qcustomplot import *
-if False:
+if True:
     from Mojo import Mojo
     mojo = Mojo()
 else:
