@@ -207,18 +207,18 @@ class Mojo(Task.Task):
             mojo_open(self.port)
         
     @Task.task
-    def write(self, addr, data, increment=False, binary=False):
+    def write(self, addr, data, increment=False, binary=False, id=''):
         if self.port: mojo_write(self.port, addr, data, increment, binary)
     
     @Task.task
-    def read(self, addr, n, increment=False, binary=False):
+    def read(self, addr, n, increment=False, binary=False, id=''):
         if self.port: return mojo_read(self.port, addr, n, increment, binary)
     
 if __name__ == '__main__':    
     Pyro4.config.SERIALIZER = 'pickle'
     Pyro4.SERIALIZERS_ACCEPTED = 'pickle'
     daemon = Pyro4.Daemon('192.168.1.2',8000)                
-    ns = Pyro4.locateNS('192.168.1.2',8001)                  
+    ns = Pyro4.locateNS()                  
     uri = daemon.register(Mojo())
     ns.register("mojo", uri) 
     daemon.requestLoop()   

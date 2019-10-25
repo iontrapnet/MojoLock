@@ -201,7 +201,9 @@ class DAC(DSP):
         DSP.__init__(self)
         self.IN0 = Reg(16)
         self.IN1 = Reg(16)
-                    
+
+import Pyro4
+@Pyro4.expose                    
 class Mojo(Task.Task):
     def __init__(self):
         Task.Task.__init__(self)
@@ -328,7 +330,7 @@ class Mojo(Task.Task):
             else:
                 self.done[x & 0xF] += self.once[addr & 0xF]
     
-    @Task.task        
+    #@Task.task        
     def write(self, addr, data, increment=False, binary=False, id=''):
         if binary:
             pass
@@ -341,7 +343,7 @@ class Mojo(Task.Task):
             return int(self.pid[0].IVAL)
         return 0
     
-    @Task.task            
+    #@Task.task            
     def read(self, addr, n, increment=False, binary=False, id=''):
         if addr == 0 and not increment:
             r = self.mem[0:n]
@@ -355,7 +357,14 @@ class Mojo(Task.Task):
         return r
         
 if __name__ == '__main__':
-    if True:
+    Pyro4.config.SERIALIZER = 'pickle'
+    Pyro4.SERIALIZERS_ACCEPTED = 'pickle'
+    daemon = Pyro4.Daemon('0.0.0.0',8000)                
+    ns = Pyro4.locateNS('0.0.0.0',8001)                  
+    uri = daemon.register(Mojo())
+    ns.register("mojo", uri) 
+    daemon.requestLoop()   
+    if False:
         x = Reg(12, 2048)
         print(int(x))
     if False:

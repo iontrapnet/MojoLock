@@ -1,4 +1,4 @@
-import __main__, sys, bisect
+import sys, bisect
 
 PY3 = sys.version_info[0] == 3
 
@@ -9,11 +9,13 @@ else:
     #from PyQt4.qcustomplot import *
     import np
 
+#import __main__
+
 def CLS(self):
     self.output()
 
 def EVAL(self):
-    window = __main__.window
+    window = self
     expr = yield 'Expr'
     while expr not in ('exit', 'quit'):
         if expr.find('=') > 0:
@@ -204,7 +206,7 @@ def find_zero(t, x, y):
 def PlotCtrl_setData(self, row, col, x, y):
     rect = self.rects.get((row, col), None)
     if not rect: return
-    window = __main__.window
+    window = self.window
     state = window.state.text()
     view = (window.view.text(),) + window.views[window.timer_view][2:]
     #t = zip(x, y)

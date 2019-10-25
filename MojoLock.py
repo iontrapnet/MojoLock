@@ -16,9 +16,10 @@ else:
     from PyQt4.QtGui import *
     from PyQt4.QtNetwork import *
     from PyQt4.qcustomplot import *
+
+mojo = None
 if True:
     from Mojo import Mojo
-    mojo = Mojo()
 else:
     import Pyro4
     Pyro4.config.SERIALIZER = 'pickle'
@@ -27,14 +28,14 @@ else:
     
     #import zerorpc
     #conn = zerorpc.Client()
-    #conn.connect('tcp://192.168.1.2:8000')
+    #conn.connect('tcp://127.0.0.1:8000')
     #mojo = conn
     
     #import rpyc
-    #conn = rpyc.classic.connect('192.168.1.2', 8000)
-    #conn.modules.sys.path.append('/home/tiqs/iontrapnet/MojoLock')
+    #conn = rpyc.classic.connect('127.0.0.1')
+    #conn.modules.sys.path.append('C:\\iontrapnet\\MojoLock')
     #conn.execute('import Mojo')
-    #mojo = conn.modules.Mojo.Mojo()
+    #Mojo = conn.modules.Mojo.Mojo
 FPS = 1
 
 import MojoLock_Script
@@ -67,6 +68,9 @@ def script(lang = ''):
     
 def script_reload(path):
     if path[-3:] == '.py':
+        if PY3:
+            import imp
+            reload = imp.reload
         reload(MojoLock_Script)
     elif path[-4:] == '.lua':
         L.execute("dofile('" + str(path).replace('\\', '\\\\') + "')")
@@ -115,7 +119,7 @@ class LVSpinBox(QDoubleSpinBox):
         value = self.value()
         point = str(self.text()).find('.')
         if point < 0:
-            point = self.text().length()
+            point = len(str(self.text()))
         digit = point - self.lineEdit().cursorPosition()
         if digit < 0:
             digit += 1
@@ -304,9 +308,9 @@ class PIDCtrl(GroupCtrl):
         self.mojo.write(self.addr + 1, struct.unpack(b'<i', struct.pack(b'<Hh', 4096*int(a)+(int(i) if int(i)>=0 else 4096+int(i)), int(p))))
 
 class PlotCtrl(QCustomPlot):
-    def __init__(self):#, window):
+    def __init__(self, window):
         QCustomPlot.__init__(self)
-        #self.window = window
+        self.window = window
         
         self.setInteractions(QCP.Interactions(QCP.iRangeDrag | QCP.iRangeZoom | QCP.iSelectAxes | QCP.iSelectLegend))
         self.mousePress.connect(self.onMousePress)
@@ -462,7 +466,7 @@ class Window(QWidget):
         row = QHBoxLayout()
         col.addLayout(row)
         
-        self.mojo = mojo
+        self.mojo = mojo or Mojo()
         
         self.ports = EnumCtrl(row, 'Port')
         self.ports.setItems(self.mojo.ports())
@@ -489,7 +493,7 @@ class Window(QWidget):
         self.views = [(0, 0, 0, 0, 0)]
         self.view_all = True
         
-        self.plot = PlotCtrl()#self)
+        self.plot = PlotCtrl(self)
         col.addWidget(self.plot)
         
         row = QHBoxLayout()
@@ -646,12 +650,9 @@ class Window(QWidget):
             next_view = (self.timer_view+1) % len(self.views)
         else:
             next_view = self.timer_view
-        self.mojo.read(0, self.size, False, True, id = '0'+str(next_view))
-        self.mojo.read(1, 1, False, True, id = 1)
-        self.mojo.read(2, 1, False, True, id = 2)
-        ret0 = self.mojo.get('read0'+str(self.timer_view))    
-        ret1 = self.mojo.get('read1')
-        ret2 = self.mojo.get('read2')  
+        ret0 = self.mojo.read(0, self.size, False, True, id = '0'+str(next_view)) or self.mojo.get('read0'+str(self.timer_view))
+        ret1 = self.mojo.read(1, 1, False, True, id = 1) or self.mojo.get('read1')
+        ret2 = self.mojo.read(2, 1, False, True, id = 2) or self.mojo.get('read2')
         if ret0:
             data = struct.unpack(b'<'+b'h'*2*self.size, ret0)
             x = []
