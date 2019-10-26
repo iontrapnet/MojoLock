@@ -23,7 +23,6 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
     assign out  = xi[62:47] + |xi[46:44];*/
 
     reg [15:0] xi;
-    reg [33:0] bxi;
     reg [17:0] b18;
     reg [35:0] x36;
     wire [35:0] mul;
@@ -82,14 +81,13 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
                 
                 case (count)
                 3'd1: x36[34:17] <= {2'b1,rom(b18[14:11]),8'b0};
-                3'd2: bxi <= mul;
-                3'd3: b18 <= ~bxi[32:15] + 1'b1;
-                3'd4: begin x36 <= mul; b18 <= {2'b0,xi[15]?~xi+1'b1:xi}; end
-                3'd5: x36 <= mul;
-                3'd6: b18 <= x36[31:16] + |x36[15:13];
-                3'd7: b18 <= xi[15] ? (~b18 + 1'b1) : b18;
+                3'd2: b18 <= ~mul[32:15] + 1'b1;
+                3'd3: begin x36 <= mul; b18 <= {2'b0,xi[15]?~xi+1'b1:xi}; end
+                3'd4: x36 <= mul;
+                3'd5: b18 <= x36[31:16] + |x36[15:13];
+                3'd6: b18 <= xi[15] ? (~b18 + 1'b1) : b18;
                 endcase
-                if (count == 3'd7) begin
+                if (count == 3'd6) begin
 
                     count <= 0;
                     done <= 1;        
