@@ -1,7 +1,7 @@
-module simple_iir (clk, reset, once, done, coef, x, yout);
+module simple_iir (clk, rst, once, done, coef, x, yout);
 parameter	DATAWIDTH = 16;
 parameter	COEFWIDTH = 16;
-input clk, reset, once;
+input clk, rst, once;
 output reg done;
 input [$clog2(COEFWIDTH)-1:0] coef;
 input [DATAWIDTH-1:0] x;
@@ -19,7 +19,7 @@ assign yout = y[DATAWIDTH+COEFWIDTH-1:COEFWIDTH];
 reg [DATAWIDTH-1:0] xmyout;
 
 always @ (posedge clk)
-if (reset) begin
+if (rst) begin
   y <= 0;
   state <= 0;
 end else begin

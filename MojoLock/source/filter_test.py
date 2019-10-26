@@ -32,7 +32,7 @@ def filter_test(dut):
         dut.b1 <= 832
         dut.b2 <= 416
     dut.x <= 0
-    yield reset_dut(dut.reset, 10)
+    yield reset_dut(dut.rst, 10)
     dut._log.info("After reset")
     
     dut._log.info("Running test!")
@@ -40,10 +40,10 @@ def filter_test(dut):
     for cycle in range(len(input)):
         yield Timer(4)
         dut.x <= input[cycle]
-        dut.start <= 1
+        dut.once <= 1
         yield Timer(2)
-        dut.start <= 0
-        while not dut.finish:
+        dut.once <= 0
+        while dut.done == 0:
             yield Timer(2)
         output.append(dut.yout.value.integer)
     dut._log.info("Running test!")

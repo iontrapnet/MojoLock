@@ -8,6 +8,7 @@
     <src>adc.luc</src>
     <src>pid.luc</src>
     <src top="true">mojo_top.luc</src>
+    <src>divider.v</src>
     <src>dac.luc</src>
     <src>filter.v</src>
     <src>rom.luc</src>

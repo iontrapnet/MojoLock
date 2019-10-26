@@ -23,7 +23,7 @@ module pid (
   }
   always {
     done = 0;
-    out = $signed($signed(out_reg.q) >>> i[15:12]) + o;
+    out = out_reg.q;
     ival = ival_reg.q[23:8];
     
     case (state.q) {
@@ -41,7 +41,7 @@ module pid (
           ival_reg.d = 0;
         else
           ival_reg.d = ival_reg.q + i_reg.q;
-        out_reg.d = ival_reg.q[23:8] + p_reg.q[23:8];
+        out_reg.d = $signed($signed(ival_reg.q[23:8] + p_reg.q[23:8]) >>> i[15:12]) + o;
         done = 1;
         state.d = state.IDLE;
     }

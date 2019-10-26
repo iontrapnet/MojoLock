@@ -39,7 +39,6 @@ module mojo_top (
     .rst(rst){
       // the avr_interface module is used to talk to the AVR for access to the USB port and analog pins
       #CLK_FREQ(100000000) {
-      // the avr_interface module is used to talk to the AVR for access to the USB port and analog pins
         avr_interface avr;
         reg_interface reg;
       }
@@ -69,6 +68,9 @@ module mojo_top (
       adc adc;
       
       dac dac[2];
+      
+      divider divider;
+      dff divider_shift[4];
       
       dff in[14][16];
       dff view[3][4];
@@ -128,18 +130,20 @@ module mojo_top (
     pid.i = pid_i.q;
     pid.o = pid_o.q;
     
-    dac.mode = 0;
-    dac_sck = dac.sck;
-    dac_mosi = dac.mosi;
-    dac_ss = dac.ss;
-    
     adc.miso = adc_miso;
     adc.busy = adc_busy;
     adc_sck = adc.sck;
     adc_ss = adc.ss;
     adc_st = adc.st;
     adc_reset = adc.reset;
-     
+    
+    dac.mode = 0;
+    dac_sck = dac.sck;
+    dac_mosi = dac.mosi;
+    dac_ss = dac.ss;
+    
+    divider.shift = divider_shift.q;
+    
     rom.in = in.q[0];    
     lia.in0[0] = in.q[1];
     lia.in1[0] = in.q[2];
@@ -163,7 +167,10 @@ module mojo_top (
     out[11] = adc.out[111:96];
     out[12] = adc.out[95:80];
     out[13] = adc.out[79:64];
-    out[14] = out[12] - out[13]; 
+    divider.once = adc.done;
+    divider.in0 = out[12] - out[13];
+    divider.in1 = out[12] + out[13];
+    out[14] = divider.out;
     
     once = 0;
     done[0] = 0;
@@ -171,7 +178,7 @@ module mojo_top (
     done[2] = rom.done;
     done[5:3] = lia.done[2:0];
     done[8:6] = pid.done[2:0];
-    done[9] = adc.done;
+    done[9] = divider.done;//adc.done;
     done[11:10] = dac.done[1:0];
     done[12] = 1;
     
@@ -265,6 +272,7 @@ module mojo_top (
             dac.in0[1] = reg.regOut.data[15:0];
             once[10] = 1;
           15:
+            divider_shift.d = reg.regOut.data[3:0];
             for (i = 0; i < 14; i++) in_out.d[i] = 0;
             for (i = 0; i < 11; i++) once_done.d[i] = 0;
           default:
