@@ -34,7 +34,7 @@ module rom #(
           state.d = next.q ? state.WRITE : state.RUN;
       state.RUN:
         if (in[$clog2(SIZE)]) {
-          if (|in[$clog2(SIZE)-1:0]) {
+          if (in[$clog2(SIZE)-1:0]) {
             addr.d = 0;
             size.d = in[$clog2(SIZE)-1:0];
             next.d = 1;

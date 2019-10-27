@@ -484,14 +484,15 @@ class Window(QWidget):
         self.btnInit.clicked.connect(self.doInit)
         
         self.state = EnumCtrl(row, 'State', self.setState)
-        self.size = 8191
-        
         self.view = EnumCtrl(row, 'View', self.selectView)
         self.t = EnumCtrl(row, 't', self.setView)
         self.X = EnumCtrl(row, 'X', self.setView)
         self.Y = EnumCtrl(row, 'Y', self.setView)
         self.views = [(0, 0, 0, 0, 0)]
         self.view_all = True
+        
+        self.size = 8191
+        self.shift = 0
         
         self.plot = PlotCtrl(self)
         col.addWidget(self.plot)
@@ -617,8 +618,16 @@ class Window(QWidget):
             X = self.outs.index(X)
         if isinstance(Y, str):
             Y = self.outs.index(Y)
-        self.mojo.write(0, [65536*self.size+16*(16*(16*Y+X)+t)+state])
+        self.mojo.write(0, [16*(16*(16*Y+X)+t)+state])
     
+    def setSize(self, size = None):
+        if size: self.size = size
+        self.mojo.write(0, [65536*self.size])
+    
+    def setShift(self, shift = None):
+        if shift: self.shift = shift
+        self.mojo.write(0, [65536*(8192+self.shift)])
+            
     @script()                    
     def setState(self, state):
         if state != self.state.value(): self.state.setValue(state)

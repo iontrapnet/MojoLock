@@ -220,11 +220,17 @@ module mojo_top (
           0:
             dds_rom.d = 0;
             addr.d = 0;
-            if (reg.regOut.data[31:16]) size.d = reg.regOut.data[31:16];
-            view.d[2] = reg.regOut.data[15:12];
-            view.d[1] = reg.regOut.data[11:8];
-            view.d[0] = reg.regOut.data[7:4];
-            state.d = reg.regOut.data[3:0];
+            if (reg.regOut.data[31:16]) {
+              case (reg.regOut.data[31:29]) {
+              0: size.d = reg.regOut.data[28:16];
+              1: divider_shift.d = reg.regOut.data[19:16];
+              }
+            } else {
+              view.d[2] = reg.regOut.data[15:12];
+              view.d[1] = reg.regOut.data[11:8];
+              view.d[0] = reg.regOut.data[7:4];
+              state.d = reg.regOut.data[1:0];
+            }
           1:
             dds_rom.d = reg.regOut.data[15:0];
             once[0] = 1;
@@ -272,7 +278,6 @@ module mojo_top (
             dac.in0[1] = reg.regOut.data[15:0];
             once[10] = 1;
           15:
-            divider_shift.d = reg.regOut.data[3:0];
             for (i = 0; i < 14; i++) in_out.d[i] = 0;
             for (i = 0; i < 11; i++) once_done.d[i] = 0;
           default:

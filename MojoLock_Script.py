@@ -264,7 +264,7 @@ def Window_setState(self, state):
         self.view_all = True
         #self.timer.stop()
         #self.timer.start(500)
-        #self.size = 4095
+        #self.setSize(4095)
         self.timer_view = 0
         self.views = [(0, 0, 'DDS', 'PID0', 'ADC0'), (0, 1, 'DDS', 'PID1', 'ADC1'), (0, 2, 'ADC', 'ADC2', 'ADC3')]
         self.view.setItems(['399', '370', 'Lamp'])
