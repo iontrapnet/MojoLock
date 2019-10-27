@@ -17,26 +17,14 @@ else:
     from PyQt4.QtNetwork import *
     from PyQt4.qcustomplot import *
 
-mojo = None
-if True:
-    from Mojo import Mojo
-else:
-    import Pyro4
-    Pyro4.config.SERIALIZER = 'pickle'
-    Pyro4.SERIALIZERS_ACCEPTED = 'pickle'
-    mojo = Pyro4.Proxy('PYRONAME:mojo@192.168.1.2:8001')
-    
-    #import zerorpc
-    #conn = zerorpc.Client()
-    #conn.connect('tcp://127.0.0.1:8000')
-    #mojo = conn
-    
-    #import rpyc
-    #conn = rpyc.classic.connect('127.0.0.1')
-    #conn.modules.sys.path.append('C:\\iontrapnet\\MojoLock')
-    #conn.execute('import Mojo')
-    #Mojo = conn.modules.Mojo.Mojo
 FPS = 1
+if True:
+    from MojoTask import MojoTask
+    from Mojo import Mojo
+    #from MockMojo import MockMojo as Mojo 
+    mojo = MojoTask(Mojo())
+else:
+    from RemoteMojo import mojo_task as mojo
 
 import MojoLock_Script
 import lupa
@@ -466,7 +454,7 @@ class Window(QWidget):
         row = QHBoxLayout()
         col.addLayout(row)
         
-        self.mojo = mojo or Mojo()
+        self.mojo = mojo
         
         self.ports = EnumCtrl(row, 'Port')
         self.ports.setItems(self.mojo.ports())

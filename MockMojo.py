@@ -1,5 +1,4 @@
 import sys, time, struct, threading
-import Task
 
 class Reg:#Bit s
     def __init__(self, width, init = 0, signed = True):
@@ -201,12 +200,9 @@ class DAC(DSP):
         DSP.__init__(self)
         self.IN0 = Reg(16)
         self.IN1 = Reg(16)
-
-import Pyro4
-@Pyro4.expose                    
-class Mojo(Task.Task):
+                
+class MockMojo:
     def __init__(self):
-        Task.Task.__init__(self)
         self.dds = DDS()
         self.rom = ROM()
         self.lia = [LIA()]*3
@@ -241,7 +237,7 @@ class Mojo(Task.Task):
             self.done[6] += self.once[0]
         
     def run(self):
-        while not self._quit.is_set():
+        while True:
             if self.state > 0:
                 for d in self.dsp:
                     d.run()
@@ -329,8 +325,7 @@ class Mojo(Task.Task):
                 self.OUT[x & 0xF] += self.IN[addr & 0xF]
             else:
                 self.done[x & 0xF] += self.once[addr & 0xF]
-    
-    #@Task.task        
+         
     def write(self, addr, data, increment=False, binary=False, id=''):
         if binary:
             pass
@@ -342,8 +337,7 @@ class Mojo(Task.Task):
         if addr == 1:
             return int(self.pid[0].IVAL)
         return 0
-    
-    #@Task.task            
+         
     def read(self, addr, n, increment=False, binary=False, id=''):
         if addr == 0 and not increment:
             r = self.mem[0:n]
@@ -357,13 +351,6 @@ class Mojo(Task.Task):
         return r
         
 if __name__ == '__main__':
-    Pyro4.config.SERIALIZER = 'pickle'
-    Pyro4.SERIALIZERS_ACCEPTED = 'pickle'
-    daemon = Pyro4.Daemon('0.0.0.0',8000)                
-    ns = Pyro4.locateNS('0.0.0.0',8001)                  
-    uri = daemon.register(Mojo())
-    ns.register("mojo", uri) 
-    daemon.requestLoop()   
     if False:
         x = Reg(12, 2048)
         print(int(x))
