@@ -18,7 +18,7 @@ else:
     from PyQt4.qcustomplot import *
 
 FPS = 1
-if True:
+if False:
     from MojoTask import MojoTask
     from Mojo import Mojo
     #from MockMojo import MockMojo as Mojo 
@@ -609,11 +609,11 @@ class Window(QWidget):
         self.mojo.write(0, [16*(16*(16*Y+X)+t)+state])
     
     def setSize(self, size = None):
-        if size: self.size = size
+        if size is not None: self.size = size
         self.mojo.write(0, [65536*self.size])
     
     def setShift(self, shift = None):
-        if shift: self.shift = shift
+        if shift is not None: self.shift = shift
         self.mojo.write(0, [65536*(8192+self.shift)])
             
     @script()                    

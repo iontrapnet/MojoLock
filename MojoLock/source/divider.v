@@ -45,19 +45,19 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
                   two_minus_yi <= {1'b1,~in1,15'b1} + 1'b1;*/
                   
                   if (shift == 4'h0) begin
-                    b18 <= in0;
+                    b18 <= {in0[15],in0[15],in0};
                     count <= 0;
                     done <= 1;
                   end else if (shift == 4'hF) begin
-                    b18 <= in1;
+                    b18 <= {2'b0,in1};
                     count <= 0;
                     done <= 1;
                   end else begin
                     xi <= in0 << (shift - 1);
                     b18 <= in1 << (shift - 1);
+                    count <= 1;
                   end
                   
-                  count <= 1;
               end
             end else begin
                 /*if (sub[16]) begin
