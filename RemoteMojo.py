@@ -7,7 +7,7 @@ HOST = '192.168.1.2'
 #PATH = 'C:\\iontrapnet\\MojoLock'
 PATH = '/home/tiqs/iontrapnet/MojoLock'
 
-if True:
+if False:
     _conn = rpyc.classic.connect(HOST, 8000)
     _conn.modules.sys.path.append(PATH)
     _conn.execute('import Mojo')

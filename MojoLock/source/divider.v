@@ -6,28 +6,21 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
     input  [15:0] in1;                                 
     output [15:0] out;
     input  [3:0]  shift;                                 
-    reg    [2:0]  count;
-                              
-    /*reg    [15:0] q;
+    reg    [4:0]  count;                   
+    reg           s;
+    
+    reg    [15:0] q;
     reg    [15:0] d;
     reg    [15:0] r;
     wire   [16:0] sub = {r[14:0],q[15]}-d;
-    assign        out = q;*/
-    
-    /*reg    [63:0] xi;
-    reg    [63:0] yi;
-    reg    [31:0] xy;   
-    reg    [31:0] two_minus_yi;
-    wire   [63:0] mul;
-    assign mul  = xy * two_minus_yi;    
-    assign out  = xi[62:47] + |xi[46:44];*/
+    assign        out = s ? (~q+1) : q;
 
-    reg [15:0] xi;
+    /*reg [15:0] xi;
     reg [17:0] b18;
     reg [35:0] x36;
     wire [35:0] mul;
     assign mul = x36[34:17] * b18;
-    assign out = b18;
+    assign out = s ? (~b18[15:0]+1) : b18[15:0];*/
     always @ (posedge clk or posedge rst) begin
         if (rst) begin
             count <= 0;
@@ -36,58 +29,50 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
             done <= 0;
             if (count == 0) begin 
               if (once) begin
-                  /*q <= in0 << shift;//0;//in0;
-                  d <= in1;
-                  r <= in0 >> shift;//in0;//0;*/
                   
-                  /*xi[62:31] <= {1'b0,in0,15'b0};
-                  xy <= {1'b0,in1,15'b0};
-                  two_minus_yi <= {1'b1,~in1,15'b1} + 1'b1;*/
                   
                   if (shift == 4'h0) begin
-                    b18 <= {in0[15],in0[15],in0};
+                    q <= in0;
+                    //b18 <= {in0[15],in0[15],in0};
                     count <= 0;
                     done <= 1;
                   end else if (shift == 4'hF) begin
-                    b18 <= {2'b0,in1};
+                    q <= in1;
+                    //b18 <= {2'b0,in1};
                     count <= 0;
                     done <= 1;
                   end else begin
-                    xi <= in0 << (shift - 1);
-                    b18 <= in1 << (shift - 1);
+                    s <= in0[15];
+                    
+                    q <= (in0[15] ? (~in0+1) : in0) >> (shift - 1);
+                    d <= in1 << (shift - 1);
+                    r <= (in0[15] ? (~in0+1) : in0) << (shift - 1);
+                  
+                    /*xi <= (in0[15] ? (~in0+1) : in0) << (shift - 1);
+                    b18 <= in1 << (shift - 1);*/
+                    
                     count <= 1;
                   end
                   
               end
             end else begin
-                /*if (sub[16]) begin
+                if (sub[16]) begin
                   r <= {r[14:0],q[15]};
                   q <= {q[14:0],1'b0};
                 end else begin
                   r <= sub[15:0];
                   q <= {q[14:0],1'b1};
                 end
-                if (count == 5'h10) begin*/
+                if (count == 5'h10) begin
                 
-                /*if (count[0]) begin
-                  yi <= mul;
-                  xy <= xi[62:31];
-                end else begin
-                  xi <= mul; 
-                  xy <= yi[62:31];     
-                  two_minus_yi <= ~yi[62:31] + 1'b1;
-                end               
-                if (count == 4'd8) begin*/
-                
-                case (count)
+                /*case (count)
                 3'd1: x36[34:17] <= {2'b1,rom(b18[14:11]),8'b0};
                 3'd2: b18 <= ~mul[32:15] + 1'b1;
-                3'd3: begin x36 <= mul; b18 <= {2'b0,xi[15]?~xi+1'b1:xi}; end
+                3'd3: begin x36 <= mul; b18 <= {2'b0,xi}; end
                 3'd4: x36 <= mul;
                 3'd5: b18 <= x36[31:16] + |x36[15:13];
-                3'd6: b18 <= xi[15] ? (~b18 + 1'b1) : b18;
                 endcase
-                if (count == 3'd6) begin
+                if (count == 3'd5) begin*/
 
                     count <= 0;
                     done <= 1;        

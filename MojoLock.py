@@ -125,7 +125,7 @@ class LVNumCtrl:
             col = QVBoxLayout()
             parent.addLayout(col)
         else:
-            col = QHBoxLayout(parent)
+            col = QVBoxLayout(parent)
         self.label = QLabel(label)
         self.spin = LVSpinBox()
         if func: self.spin.onValueChanged(func)
@@ -480,13 +480,17 @@ class Window(QWidget):
         self.view_all = True
         
         self.size = 8191
-        self.shift = 0
         
         self.plot = PlotCtrl(self)
         col.addWidget(self.plot)
         
         row = QHBoxLayout()
         col.addLayout(row)
+        
+        group = GroupCtrl(row, 'Shift')
+        self.shift = LVNumCtrl(group.group, 'Shift', self.setShift)
+        self.shift.spin.setDecimals(0)
+        self.shift.spin.setRange(0, 15)
         
         self.dds0 = DDSCtrl(row, 'DDS0', self.mojo, 2)
         self.lia0 = LIACtrl(row, 'LIA0', self.mojo, 4)
@@ -613,8 +617,11 @@ class Window(QWidget):
         self.mojo.write(0, [65536*self.size])
     
     def setShift(self, shift = None):
-        if shift is not None: self.shift = shift
-        self.mojo.write(0, [65536*(8192+self.shift)])
+        if shift == None:
+            shift = int(self.shift.value())
+        else:
+            self.shift.setValue(shift)
+        self.mojo.write(0, [65536*(8192+shift)])
             
     @script()                    
     def setState(self, state):

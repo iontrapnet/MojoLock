@@ -17,14 +17,14 @@ module pid (
       signed dff in_reg [16];
       signed dff p_reg [24];
       signed dff i_reg [24];
-      signed dff ival_reg [24];
+      signed dff ival_reg [32];
       signed dff out_reg [16];
     }
   }
   always {
     done = 0;
     out = out_reg.q;
-    ival = ival_reg.q[23:8];
+    ival = ival_reg.q[31:16];
     
     case (state.q) {
       state.IDLE:
@@ -33,7 +33,7 @@ module pid (
           state.d = state.PI;
         }
       state.PI:
-        p_reg.d = (p == 16h8000) ? 0 : ($signed(p) * in_reg.q);
+        p_reg.d = (p == 16h8000) ? $signed(24h0) : ($signed(p) * in_reg.q);
         i_reg.d = $signed(i[11:0]) * in_reg.q;
         state.d = state.ADD;
       state.ADD:
@@ -41,7 +41,7 @@ module pid (
           ival_reg.d = 0;
         else
           ival_reg.d = ival_reg.q + i_reg.q;
-        out_reg.d = $signed($signed(ival_reg.q[23:8] + p_reg.q[23:8]) >>> i[15:12]) + o;
+        out_reg.d = $signed($signed(ival_reg.q[31:16] + p_reg.q[23:8]) >>> i[15:12]) + o;
         done = 1;
         state.d = state.IDLE;
     }

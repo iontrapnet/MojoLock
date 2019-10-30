@@ -139,20 +139,20 @@ def LOCK1(self, wait = 0):
 def LOCK2(self, wait = 0):
     self.pid2.setSO(-2048, 0)
     self.pid2.setPAI(-32768, 2, -2048)
-    self.pid2.setPAI(-32768, 2, 1)
+    self.pid2.setPAI(-32768, 2, 256)
     self.view.setValue('Lamp')
     self.X.setValue('PID2')
     self.Y.setValue('ADC23')
     self.view_all = False
-    self.timer_view = 2
-    rect = self.plot.rects[(0, 2)]
+    self.timer_view = 0#2
+    rect = self.plot.rects[(0, self.timer_view)]
     rect.rescale = True
     rect.xy = True
     WAIT(wait)
     pid_o = yield 'Scanning to find PID2 Offset...'
     pid_o = int(pid_o)
     if not pid_o: return
-    self.pid2.setSO(0, pid_o)
+    self.pid2.setSO(100, pid_o)
     self.pid2.setPAI(0, 2, -2048)
     self.pid2.setPAI(0, 2, 1)
     rect.xy = False
@@ -165,7 +165,7 @@ def LOCK2(self, wait = 0):
     self.pid2.setSO(150, pid_o)
     WAIT(wait)
     yield 'Testing...'
-    self.pid2.setSO(0, pid_o)
+    self.pid2.setSO(100, pid_o)
     self.view_all = True
                     
 def Window_doRun(self, *args):
@@ -247,17 +247,28 @@ def Window_setState(self, state):
     if state == 'IDLE':
         self.mojo.write(15, [0])
     elif state == 'TEST':
-        self.plot.resetGrid(1, 1)
-        self.view_all = True
-        self.timer_view = 0
-        self.views = [(0, 0, 'DDS', 'PID0', 'ROM')]
-        self.view.setItems([''])
-        self.dds0.setValue(51200, 13, 0)
-        self.lia0.setValue(0, 0, 9)
-        self.pid0.setSO(-2048, 512)
-        self.pid0.setPAI(-32768, 6, -2048)
-        self.pid0.setPAI(-32768, 6, 1)
-        self.config({'ROM':'DDS0I', 'LIA0X':'ROM', 'LIA0Y':'DDS0Q', 'PID0':'LIA0'}, {'DDS':'PID0', 'ROM':'DDS', 'LIA0':'ROM', 'PID0':'LIA0'})
+        if False:
+            self.plot.resetGrid(1, 1)
+            self.view_all = True
+            self.timer_view = 0
+            self.views = [(0, 0, 'DDS', 'PID0', 'ROM')]
+            self.view.setItems([''])
+            self.dds0.setValue(51200, 13, 0)
+            self.lia0.setValue(0, 0, 9)
+            self.pid0.setSO(-2048, 512)
+            self.pid0.setPAI(-32768, 6, -2048)
+            self.pid0.setPAI(-32768, 6, 1)
+            self.config({'ROM':'DDS0I', 'LIA0X':'ROM', 'LIA0Y':'DDS0Q', 'PID0':'LIA0'}, {'DDS':'PID0', 'ROM':'DDS', 'LIA0':'ROM', 'PID0':'LIA0'})
+        else:
+            self.plot.resetGrid(1, 1)
+            self.view_all = True
+            self.timer_view = 0
+            self.views = [(0, 0, 'PID0', 'PID0', 'PID1')]
+            self.view.setItems([''])
+            self.pid0.setSO(-2048, 0)
+            self.pid0.setPAI(-32768, 6, -2048)
+            self.pid0.setPAI(-32768, 6, 256)
+            self.config({'PID1':'PID0'}, {'PID1':'PID0', 'PID0':'ON'})
         self.mojo.write(1, [0])
     elif state == 'RUN':
         if False:
@@ -289,7 +300,7 @@ def Window_setState(self, state):
             self.view.setItems(['Lamp'])
             self.pid2.setSO(-2048, 0)
             self.pid2.setPAI(-32768, 2, -2048)
-            self.pid2.setPAI(-32768, 2, 1)
+            self.pid2.setPAI(-32768, 2, 256)
             self.config({'PID2':'ADC23','DAC1A':'PID2'}, {'PID2':'ADC','DAC1':'PID2','ADC':'ON'})
         
         #self.views = [(0, 0, 'DDS', 'DDS0I', 'LIA0')]
