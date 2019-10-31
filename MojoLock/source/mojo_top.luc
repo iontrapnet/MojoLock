@@ -169,7 +169,7 @@ module mojo_top (
     out[13] = adc.out[79:64];
     divider.once = adc.done;
     divider.in0 = out[12] - out[13];
-    divider.in1 = out[12] + out[13];
+    divider.in1 = out[12] + out[13] - lia_s.q[2];
     out[14] = divider.out;
     
     once = 0;

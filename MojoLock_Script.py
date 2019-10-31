@@ -58,9 +58,9 @@ def TEST(self, wait = 5):
 
 def LOCK0(self, wait = 0):
     self.lia0.setValue(0, 0, 9)
-    self.pid0.setSO(-2048, 0)
+    self.pid0.setSO(-32768, 0)
     self.pid0.setPAI(-32768, 2, -2048)
-    self.pid0.setPAI(-32768, 2, 1)
+    self.pid0.setPAI(-32768, 2, 256)
     self.view.setValue('399')
     self.X.setValue('PID0')
     self.Y.setValue('ADC0')
@@ -73,7 +73,7 @@ def LOCK0(self, wait = 0):
     lia_o = yield 'Scanning to find LIA0 Offset...'
     lia_o = int(lia_o)
     if not lia_o: return
-    self.lia0.setValue(lia_o, 0, 9)
+    self.lia0.setValue(lia_o, 1, 9)
     self.Y.setValue('LIA0')
     WAIT(wait)
     pid_o = yield 'Scanning to find PID0 Offset...'
@@ -81,11 +81,11 @@ def LOCK0(self, wait = 0):
     if not pid_o: return
     self.pid0.setSO(0, pid_o)
     self.pid0.setPAI(0, 2, -2048)
-    self.pid0.setPAI(0, 2, 1)
+    self.pid0.setPAI(0, 2, 2047)
     self.X.setValue('ADC0')
     rect.xy = False
     rect.rescale = False
-    rect.axis(1).setRange(lia_o-50, lia_o+200)
+    rect.axis(1).setRange(lia_o-500, lia_o+500)
     rect.axis(2).setRange(-1000, 1000)
     if not PY3: rect.axes()[3].setRange(0, self.size)
     WAIT(wait)
@@ -98,9 +98,9 @@ def LOCK0(self, wait = 0):
 
 def LOCK1(self, wait = 0):
     self.lia1.setValue(0, 0, 9)
-    self.pid1.setSO(-2048, 0)
+    self.pid1.setSO(-32768, 0)
     self.pid1.setPAI(-32768, 2, -2048)
-    self.pid1.setPAI(-32768, 2, 1)
+    self.pid1.setPAI(-32768, 2, 256)
     self.view.setValue('370')
     self.X.setValue('PID1')
     self.Y.setValue('ADC1')
@@ -113,7 +113,7 @@ def LOCK1(self, wait = 0):
     lia_o = yield 'Scanning to find LIA1 Offset...'
     lia_o = int(lia_o)
     if not lia_o: return
-    self.lia1.setValue(lia_o, 0, 9)
+    self.lia1.setValue(lia_o, 1, 9)
     self.Y.setValue('LIA1')
     WAIT(wait)
     pid_o = yield 'Scanning to find PID1 Offset...'
@@ -121,11 +121,11 @@ def LOCK1(self, wait = 0):
     if not pid_o: return
     self.pid1.setSO(0, pid_o)
     self.pid1.setPAI(0, 2, -2048)
-    self.pid1.setPAI(0, 2, -1)
+    self.pid1.setPAI(0, 2, -2047)
     self.X.setValue('ADC1')
     rect.xy = False
     rect.rescale = False
-    rect.axis(1).setRange(lia_o-50, lia_o+200)
+    rect.axis(1).setRange(lia_o-500, lia_o+500)
     rect.axis(2).setRange(-1000, 1000)
     if not PY3: rect.axes()[3].setRange(0, self.size)
     WAIT(wait)
@@ -137,14 +137,14 @@ def LOCK1(self, wait = 0):
     self.view_all = True
 
 def LOCK2(self, wait = 0):
-    self.pid2.setSO(-2048, 0)
+    self.pid2.setSO(-32768, 0)
     self.pid2.setPAI(-32768, 2, -2048)
     self.pid2.setPAI(-32768, 2, 256)
     self.view.setValue('Lamp')
     self.X.setValue('PID2')
     self.Y.setValue('ADC23')
     self.view_all = False
-    self.timer_view = 0#2
+    self.timer_view = 2#0
     rect = self.plot.rects[(0, self.timer_view)]
     rect.rescale = True
     rect.xy = True
@@ -271,7 +271,7 @@ def Window_setState(self, state):
             self.config({'PID1':'PID0'}, {'PID1':'PID0', 'PID0':'ON'})
         self.mojo.write(1, [0])
     elif state == 'RUN':
-        if False:
+        if True:
             self.plot.resetGrid(1, 3)
             self.view_all = True
             #self.timer.stop()
@@ -282,23 +282,23 @@ def Window_setState(self, state):
             self.view.setItems(['399', '370', 'Lamp'])
             self.dds0.setValue(30000, 2, 0)
             self.lia0.setValue(0, 0, 9)
-            self.pid0.setSO(-2048, 0)
+            self.pid0.setSO(-32768, 0)
             self.pid0.setPAI(-32768, 2, -2048)
-            self.pid0.setPAI(-32768, 2, 1)
+            self.pid0.setPAI(-32768, 2, 256)
             self.lia1.setValue(0, 0, 9)
-            self.pid1.setSO(-2048, 0)
+            self.pid1.setSO(-32768, 0)
             self.pid1.setPAI(-32768, 2, -2048)
-            self.pid1.setPAI(-32768, 2, 1)
-            self.pid2.setSO(-2048, 0)
+            self.pid1.setPAI(-32768, 2, 256)
+            self.pid2.setSO(-32768, 0)
             self.pid2.setPAI(-32768, 2, -2048)
-            self.pid2.setPAI(-32768, 2, 1)
+            self.pid2.setPAI(-32768, 2, 256)
             self.config({'DAC0A':'DDS0I','LIA0Y':'DDS0Q','LIA0X':'ADC0','PID0':'LIA0','DAC0B':'PID0', 'LIA1Y':'DDS0Q','LIA1X':'ADC1','PID1':'LIA1','DAC1B':'PID1', 'PID2':'ADC23','DAC1A':'PID2'}, {'DAC0':'DDS','ADC':'DAC0','LIA0':'ADC','PID0':'LIA0','LIA1':'ADC','PID1':'LIA1','DAC1':'PID1','DDS':'DAC1', 'PID2':'ADC'})
         else:
             self.plot.resetGrid(1, 1)
             self.timer_view = 0
             self.views = [(0, 0, 'ADC', 'ADC2', 'ADC3')]
             self.view.setItems(['Lamp'])
-            self.pid2.setSO(-2048, 0)
+            self.pid2.setSO(-32768, 0)
             self.pid2.setPAI(-32768, 2, -2048)
             self.pid2.setPAI(-32768, 2, 256)
             self.config({'PID2':'ADC23','DAC1A':'PID2'}, {'PID2':'ADC','DAC1':'PID2','ADC':'ON'})
