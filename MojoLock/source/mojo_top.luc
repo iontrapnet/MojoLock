@@ -71,6 +71,7 @@ module mojo_top (
       
       divider divider;
       dff divider_shift[4];
+      dff divider_offset[16];
       
       dff in[14][16];
       dff view[3][4];
@@ -169,7 +170,7 @@ module mojo_top (
     out[13] = adc.out[79:64];
     divider.once = adc.done;
     divider.in0 = out[12] - out[13];
-    divider.in1 = out[12] + out[13] - lia_s.q[2];
+    divider.in1 = out[12] + out[13] - divider_offset.q;
     out[14] = divider.out;
     
     once = 0;
@@ -238,6 +239,7 @@ module mojo_top (
             dds_f.d[0] = reg.regOut.data[15:0];
             dds_p.d[0] = reg.regOut.data[31:16];
           3:
+            divider_offset.d = reg.regOut.data[31:16];
             in.d[0] = reg.regOut.data[15:0];
             once[1] = 1;
           4:

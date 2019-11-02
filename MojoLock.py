@@ -1,4 +1,4 @@
-import os, sys, math, struct
+import os, sys, math, struct, csv
 from functools import wraps
 
 PY3 = sys.version_info[0] == 3
@@ -314,6 +314,8 @@ class PlotCtrl(QCustomPlot):
         self.menu.addAction(self.menu.xy)
         self.menu.x = self.menu.addAction("X:")
         self.menu.y = self.menu.addAction("Y:")
+        self.menu.save = QAction("Save",self.menu)
+        self.menu.addAction(self.menu.save)
         
         self.rects = None
         self.resetGrid(1, 1)
@@ -417,10 +419,20 @@ class PlotCtrl(QCustomPlot):
         #quitAction = self.menu.addAction("Quit")
         action = self.menu.exec_(self.mapToGlobal(pos))
         if action == self.menu.rescale:
-        #if action and action.text() == 'Rescale':
             rect.rescale = self.menu.rescale.isChecked()
         elif action == self.menu.xy:
             rect.xy = self.menu.xy.isChecked()
+        elif action == self.menu.save:
+            path, _ = QFileDialog.getSaveFileName(self,"Save Data","","CSV Files (*.csv)")
+            if rect.xy:
+                data = [(int(i.key),int(i.value)) for i in rect.graph[0].data().values()]
+            else:
+                data = zip([int(i.value) for i in rect.graph[0].data().values()], [int(i.value) for i in rect.graph[1].data().values()])
+            with open(path, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                for i in data:
+                    writer.writerow(i)
+                    
         #if action == quitAction:
         #    qApp.quit()
         
@@ -487,15 +499,19 @@ class Window(QWidget):
         row = QHBoxLayout()
         col.addLayout(row)
         
-        group = GroupCtrl(row, 'Shift')
-        self.shift = LVNumCtrl(group.group, 'Shift', self.setShift)
-        self.shift.spin.setDecimals(0)
-        self.shift.spin.setRange(0, 15)
-        
         self.dds0 = DDSCtrl(row, 'DDS0', self.mojo, 2)
         self.lia0 = LIACtrl(row, 'LIA0', self.mojo, 4)
         self.lia1 = LIACtrl(row, 'LIA1', self.mojo, 5)
         self.lia2 = LIACtrl(row, 'LIA2', self.mojo, 6)
+                
+        divider = GroupCtrl(row, 'Divider')
+        divider_row = QHBoxLayout(divider.group)
+        self.divider_shift = LVNumCtrl(divider_row, 'Shift', self.setDividerShift)
+        self.divider_shift.spin.setDecimals(0)
+        self.divider_shift.spin.setRange(0, 15)
+        self.divider_offset = LVNumCtrl(divider_row, 'Offset', self.setDividerOffset)
+        self.divider_offset.spin.setDecimals(0)
+        self.divider_offset.spin.setRange(-32768, 32767)
         
         row = QHBoxLayout()
         col.addLayout(row)
@@ -615,13 +631,6 @@ class Window(QWidget):
     def setSize(self, size = None):
         if size is not None: self.size = size
         self.mojo.write(0, [65536*self.size])
-    
-    def setShift(self, shift = None):
-        if shift == None:
-            shift = int(self.shift.value())
-        else:
-            self.shift.setValue(shift)
-        self.mojo.write(0, [65536*(8192+shift)])
             
     @script()                    
     def setState(self, state):
@@ -646,6 +655,20 @@ class Window(QWidget):
         if 0 <= view < len(self.views):
             self.views[view] = self.views[view][0:2] + (self.t.text(), self.X.text(), self.Y.text())       
     
+    def setDividerShift(self, shift = None):
+        if shift == None:
+            shift = int(self.divider_shift.value())
+        else:
+            self.divider_shift.setValue(shift)
+        self.mojo.write(0, [65536*(8192+shift)])
+    
+    def setDividerOffset(self, offset = None):
+        if offset == None:
+            offset = int(self.divider_offset.value())
+        else:
+            self.divider_offset.setValue(offset)
+        self.mojo.write(3, [65536*offset])
+            
     @script()            
     def doTimeout(self):
         state = self.state.value()

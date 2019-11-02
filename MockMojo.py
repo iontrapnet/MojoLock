@@ -4,7 +4,7 @@ class Reg:#Bit s
     def __init__(self, width, init = 0, signed = True):
         self.width = int(width)
         self.mask = (1 << self.width) - 1
-        self.value = int(init)
+        self.value = int(init) & self.mask
         if self.value < 0:
             self.value = self.mask + 1 + self.value
         self.signed() if signed else self.unsigned()
@@ -19,6 +19,8 @@ class Reg:#Bit s
             
     def __le__(self, x):
         self.value = int(x) & self.mask
+        if self.value < 0:
+            self.value = self.mask + 1 + self.value
     
     def __abs__(self):
         return self.value
@@ -117,7 +119,7 @@ class DDS(DSP):
                 elif i == 1:
                     raddr <= abs(self.phase[0][8:]) + abs(self.p[0][0:11])
                 addr = (len(self.ram)-1-abs(raddr[0:10])) if raddr[10] else abs(raddr[0:10]) 
-                data[i] = -self.ram[addr] if raddr[11] else self.ram[addr]
+                data[i] = (-self.ram[addr]) if raddr[11] else self.ram[addr]
             self.i[0] <= data[0] >> abs(self.p[0][12:])
             self.q[0] <= data[1]
        

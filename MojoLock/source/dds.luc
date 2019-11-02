@@ -16,7 +16,7 @@ module dds (
     .rst(rst) {
       fsm state = {IDLE,RUN,DATA,I0,Q0,/*I1,Q1,*/DONE};
       dff raddr [12];
-      dff phase [1][20];
+      dff phase [1][19];
       dff data [2][16];
       dff neg;
       dff next [2];
@@ -49,7 +49,7 @@ module dds (
           state.d = state.Q0;//1;
         } else {
           phase.d[0] = |f[0] ? phase.q[0] + f[0] : 0;
-          raddr.d = phase.q[0][19:8];
+          raddr.d = phase.q[0][18:7];
           state.d = state.I0;
         }
       state.DATA:
@@ -57,7 +57,7 @@ module dds (
         data.d[next.q] = neg.q ? -ram.read_data : ram.read_data;
         state.d = state.Q0 + next.q;
       state.I0:
-        raddr.d = phase.q[0][19:8] + p[0][11:0];
+        raddr.d = phase.q[0][18:7] + p[0][11:0];
         neg.d = raddr.q[11];
         next.d = 0;
         state.d = state.DATA;

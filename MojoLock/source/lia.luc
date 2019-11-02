@@ -14,16 +14,16 @@ module lia (
       fsm state = {IDLE,MIX,FILTER};
       signed dff in0_reg [16];
       signed dff in1_reg [16];
-      signed dff mix_reg [24];
+      signed dff mix_reg [32];
       filter filter;
     }
   }
   always {
     done = 0;
-    out = (f[3:0] == 0) ? mix_reg.q[23:8] : filter.out;
+    out = $signed($signed((f[3:0] == 0) ? mix_reg.q : $signed(filter.out)) >>> f[7:4]);
     
     filter.once = 0;
-    filter.in = mix_reg.q[23:8];
+    filter.in = mix_reg.q;
     filter.a1 = f[3:0];
     filter.a2 = f[3:0];
     
@@ -31,7 +31,7 @@ module lia (
       state.IDLE:
         if (once) {
           in0_reg.d = in0 - s;
-          in1_reg.d = $signed($signed(in1) >>> f[7:4]);
+          in1_reg.d = in1;
           state.d = state.MIX;
         }
       state.MIX:
