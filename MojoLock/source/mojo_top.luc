@@ -55,7 +55,8 @@ module mojo_top (
       
       rom rom;
       
-      lia lia[3];
+      lia lia[2];
+      lia lia2(#TYPE(1));
       dff lia_s[3][16];
       dff lia_f[3][16];
       
@@ -68,10 +69,6 @@ module mojo_top (
       adc adc;
       
       dac dac[2];
-      
-      divider divider;
-      dff divider_shift[4];
-      dff divider_offset[16];
       
       dff in[14][16];
       dff view[3][4];
@@ -123,8 +120,10 @@ module mojo_top (
     dds.f = dds_f.q;
     dds.p = dds_p.q;
     
-    lia.s = lia_s.q;
-    lia.f = lia_f.q;
+    lia.s = lia_s.q[1:0];
+    lia.f = lia_f.q[1:0];
+    lia2.s = lia_s.q[2];
+    lia2.f = lia_f.q[2];
     
     pid.s = pid_s.q;
     pid.p = pid_p.q;
@@ -143,15 +142,13 @@ module mojo_top (
     dac_mosi = dac.mosi;
     dac_ss = dac.ss;
     
-    divider.shift = divider_shift.q;
-    
     rom.in = in.q[0];    
     lia.in0[0] = in.q[1];
     lia.in1[0] = in.q[2];
     lia.in0[1] = in.q[3];
     lia.in1[1] = in.q[4];
-    lia.in0[2] = in.q[5];
-    lia.in1[2] = in.q[6];
+    lia2.in0 = in.q[5];
+    lia2.in1 = in.q[6];
     pid.in[2:0] = in.q[9:7];
     dac.in0[0] = in.q[10];
     dac.in1[0] = in.q[11];
@@ -162,24 +159,23 @@ module mojo_top (
     out[1] = dds.i[0];
     out[2] = dds.q[0];
     out[3] = rom.out;
-    out[6:4] = lia.out[2:0];
+    out[5:4] = lia.out[1:0];
+    out[6] = lia2.out;
     out[9:7] = pid.out[2:0];
     out[10] = adc.out[127:112];
     out[11] = adc.out[111:96];
     out[12] = adc.out[95:80];
     out[13] = adc.out[79:64];
-    divider.once = adc.done;
-    divider.in0 = out[12] - out[13];
-    divider.in1 = out[12] + out[13] - divider_offset.q;
-    out[14] = divider.out;
+    out[14] = out[12] - out[13];
     
     once = 0;
     done[0] = 0;
     done[1] = dds.done;
     done[2] = rom.done;
-    done[5:3] = lia.done[2:0];
+    done[4:3] = lia.done[1:0];
+    done[5] = lia2.done;
     done[8:6] = pid.done[2:0];
-    done[9] = divider.done;//adc.done;
+    done[9] = adc.done;
     done[11:10] = dac.done[1:0];
     done[12] = 1;
     
@@ -222,10 +218,7 @@ module mojo_top (
             dds_rom.d = 0;
             addr.d = 0;
             if (reg.regOut.data[31:16]) {
-              case (reg.regOut.data[31:29]) {
-              0: size.d = reg.regOut.data[28:16];
-              1: divider_shift.d = reg.regOut.data[19:16];
-              }
+               size.d = reg.regOut.data[28:16];
             } else {
               view.d[2] = reg.regOut.data[15:12];
               view.d[1] = reg.regOut.data[11:8];
@@ -239,7 +232,6 @@ module mojo_top (
             dds_f.d[0] = reg.regOut.data[15:0];
             dds_p.d[0] = reg.regOut.data[31:16];
           3:
-            divider_offset.d = reg.regOut.data[31:16];
             in.d[0] = reg.regOut.data[15:0];
             once[1] = 1;
           4:
@@ -310,7 +302,8 @@ module mojo_top (
     }    
     dds.once = once[0];
     rom.once = once[1];
-    lia.once[2:0] = once[4:2];
+    lia.once[1:0] = once[3:2];
+    lia2.once = once[4];
     pid.once[2:0] = once[7:5];
     adc.once = once[8];
     dac.once[1:0] = once[10:9];

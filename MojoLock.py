@@ -18,10 +18,10 @@ else:
     from PyQt4.qcustomplot import *
 
 FPS = 1
-if False:
+if True:
     from MojoTask import MojoTask
-    from Mojo import Mojo
-    #from MockMojo import MockMojo as Mojo 
+    #from Mojo import Mojo
+    from MockMojo import MockMojo as Mojo 
     mojo = MojoTask(Mojo())
 else:
     from RemoteMojo import mojo_task as mojo
@@ -197,15 +197,12 @@ class LIACtrl(GroupCtrl):
         
         row = QHBoxLayout(self.group)
         
-        #self.once = QComboBox()
-        #self.in0 = QComboBox()
-        #self.in1 = QComboBox()
-        self.s = LVNumCtrl(row, 'Offset', self.setValue)
+        self.o = LVNumCtrl(row, 'Offset', self.setValue)
         self.a = LVNumCtrl(row, 'Atten', self.setValue)
-        self.f = LVNumCtrl(row, 'Cutoff', self.setValue)
+        self.f = LVNumCtrl(row, 'Filter', self.setValue)
         
-        self.s.spin.setDecimals(0)
-        self.s.spin.setRange(-32768, 32767)
+        self.o.spin.setDecimals(0)
+        self.o.spin.setRange(-32768, 32767)
         
         self.a.spin.setDecimals(0)
         self.a.spin.setRange(0, 15)
@@ -213,7 +210,52 @@ class LIACtrl(GroupCtrl):
         self.f.spin.setDecimals(0)
         self.f.spin.setRange(0, 15)
         
-    def setValue(self, s = None, a = None, f = None):
+    def setValue(self, o = None, a = None, f = None):
+        if o == None:
+            o = self.o.value()
+        else:
+            self.o.setValue(o)
+        if a == None:
+            a = self.a.value()
+        else:
+            self.a.setValue(a)
+        if f == None:
+            f = self.f.value()
+        else:
+            self.f.setValue(f)
+        self.mojo.write(self.addr, struct.unpack(b'<i', struct.pack(b'<Hh', 16*int(a)+int(f), int(o))))
+
+class LIA2Ctrl(GroupCtrl):
+    def __init__(self, parent = None, label = '', mojo = None, addr = 0):
+        GroupCtrl.__init__(self, parent, label)
+
+        self.mojo = mojo
+        self.addr = addr
+        
+        row = QHBoxLayout(self.group)
+        
+        self.o = LVNumCtrl(row, 'Offset', self.setValue)
+        self.s = LVNumCtrl(row, 'Shift', self.setValue)
+        self.a = LVNumCtrl(row, 'Atten', self.setValue)
+        self.f = LVNumCtrl(row, 'Filter', self.setValue)
+        
+        self.o.spin.setDecimals(0)
+        self.o.spin.setRange(-32768, 32767)
+        
+        self.s.spin.setDecimals(0)
+        self.s.spin.setRange(0, 15)
+        
+        self.a.spin.setDecimals(0)
+        self.a.spin.setRange(0, 15)
+        
+        self.f.spin.setDecimals(0)
+        self.f.spin.setRange(0, 15)
+        
+    def setValue(self, o = None, s = None, a = None, f = None):
+        if o == None:
+            o = self.o.value()
+        else:
+            self.o.setValue(o)
         if s == None:
             s = self.s.value()
         else:
@@ -226,8 +268,8 @@ class LIACtrl(GroupCtrl):
             f = self.f.value()
         else:
             self.f.setValue(f)
-        self.mojo.write(self.addr, struct.unpack(b'<i', struct.pack(b'<Hh', 16*int(a)+int(f), int(s))))
-        
+        self.mojo.write(self.addr, struct.unpack(b'<i', struct.pack(b'<Hh', 16*(16*int(s)+int(a))+int(f), int(o))))
+                
 class PIDCtrl(GroupCtrl):
     def __init__(self, parent = None, label = '', mojo = None, addr = 0):
         GroupCtrl.__init__(self, parent, label)
@@ -502,16 +544,7 @@ class Window(QWidget):
         self.dds0 = DDSCtrl(row, 'DDS0', self.mojo, 2)
         self.lia0 = LIACtrl(row, 'LIA0', self.mojo, 4)
         self.lia1 = LIACtrl(row, 'LIA1', self.mojo, 5)
-        self.lia2 = LIACtrl(row, 'LIA2', self.mojo, 6)
-                
-        divider = GroupCtrl(row, 'Divider')
-        divider_row = QHBoxLayout(divider.group)
-        self.divider_shift = LVNumCtrl(divider_row, 'Shift', self.setDividerShift)
-        self.divider_shift.spin.setDecimals(0)
-        self.divider_shift.spin.setRange(0, 15)
-        self.divider_offset = LVNumCtrl(divider_row, 'Offset', self.setDividerOffset)
-        self.divider_offset.spin.setDecimals(0)
-        self.divider_offset.spin.setRange(-32768, 32767)
+        self.lia2 = LIA2Ctrl(row, 'LIA2', self.mojo, 6)
         
         row = QHBoxLayout()
         col.addLayout(row)
@@ -653,21 +686,7 @@ class Window(QWidget):
     def setView(self, arg):
         view = self.view.value()
         if 0 <= view < len(self.views):
-            self.views[view] = self.views[view][0:2] + (self.t.text(), self.X.text(), self.Y.text())       
-    
-    def setDividerShift(self, shift = None):
-        if shift == None:
-            shift = int(self.divider_shift.value())
-        else:
-            self.divider_shift.setValue(shift)
-        self.mojo.write(0, [65536*(8192+shift)])
-    
-    def setDividerOffset(self, offset = None):
-        if offset == None:
-            offset = int(self.divider_offset.value())
-        else:
-            self.divider_offset.setValue(offset)
-        self.mojo.write(3, [65536*offset])
+            self.views[view] = self.views[view][0:2] + (self.t.text(), self.X.text(), self.Y.text())
             
     @script()            
     def doTimeout(self):

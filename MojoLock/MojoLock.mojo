@@ -6,9 +6,9 @@
     <src>spi.luc</src>
     <src>lia.luc</src>
     <src>adc.luc</src>
-    <src>divider.v</src>
-    <src top="true">mojo_top.luc</src>
     <src>pid.luc</src>
+    <src top="true">mojo_top.luc</src>
+    <src>divider.v</src>
     <src>dac.luc</src>
     <src>filter.v</src>
     <src>rom.luc</src>
@@ -16,12 +16,12 @@
     <ucf lib="true">mojo.ucf</ucf>
     <component>reg_interface.luc</component>
     <component>spi_slave.luc</component>
-    <component>uart_rx.luc</component>
     <component>simple_ram.v</component>
+    <component>uart_rx.luc</component>
     <component>cclk_detector.luc</component>
     <component>reset_conditioner.luc</component>
-    <component>avr_interface.luc</component>
     <component>uart_tx.luc</component>
+    <component>avr_interface.luc</component>
     <core name="coregen_clk">
       <src>coregen_clk.v</src>
     </core>

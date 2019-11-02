@@ -142,7 +142,7 @@ def LOCK2(self, wait = 0):
     self.pid2.setPAI(-32768, 2, 256)
     self.view.setValue('')#'Lamp')
     self.X.setValue('PID2')
-    self.Y.setValue('ADC23')
+    self.Y.setValue('LIA2')
     self.view_all = False
     self.timer_view = 0#2
     rect = self.plot.rects[(0, self.timer_view)]
@@ -247,17 +247,17 @@ def Window_setState(self, state):
     if state == 'IDLE':
         self.mojo.write(15, [0])
     elif state == 'TEST':
-        if False:
+        if True:
             self.plot.resetGrid(1, 1)
             self.view_all = True
             self.timer_view = 0
             self.views = [(0, 0, 'DDS', 'PID0', 'ROM')]
             self.view.setItems([''])
-            self.dds0.setValue(51200, 13, 0)
+            self.dds0.setValue(25600, 13, 0)
             self.lia0.setValue(0, 0, 9)
-            self.pid0.setSO(-2048, 512)
+            self.pid0.setSO(-32767, 512)
             self.pid0.setPAI(-32768, 6, -2048)
-            self.pid0.setPAI(-32768, 6, 1)
+            self.pid0.setPAI(-32768, 6, 256)
             self.config({'ROM':'DDS0I', 'LIA0X':'ROM', 'LIA0Y':'DDS0Q', 'PID0':'LIA0'}, {'DDS':'PID0', 'ROM':'DDS', 'LIA0':'ROM', 'PID0':'LIA0'})
         else:
             self.plot.resetGrid(1, 1)
@@ -265,7 +265,7 @@ def Window_setState(self, state):
             self.timer_view = 0
             self.views = [(0, 0, 'PID0', 'PID0', 'PID1')]
             self.view.setItems([''])
-            self.pid0.setSO(-2048, 0)
+            self.pid0.setSO(-32767, 0)
             self.pid0.setPAI(-32768, 6, -2048)
             self.pid0.setPAI(-32768, 6, 256)
             self.config({'PID1':'PID0'}, {'PID1':'PID0', 'PID0':'ON'})
@@ -280,7 +280,7 @@ def Window_setState(self, state):
             self.timer_view = 0
             self.views = [(0, 0, 'DDS', 'PID0', 'ADC0'), (0, 1, 'DDS', 'PID1', 'ADC1'), (0, 2, 'ADC', 'ADC2', 'ADC3')]
             self.view.setItems(['399', '370', 'Lamp'])
-            self.dds0.setValue(30000, 2, 0)
+            self.dds0.setValue(15000, 2, 0)
             self.lia0.setValue(0, 9, 9)
             self.pid0.setSO(-32767, 0)
             self.pid0.setPAI(-32768, 2, -2048)
@@ -307,12 +307,5 @@ def Window_setState(self, state):
             self.pid2.setSO(-32767, 0)
             self.pid2.setPAI(-32768, 2, -2048)
             self.pid2.setPAI(-32768, 2, 256)
-            #self.config({'DAC0A':'DDS0I','LIA0Y':'DDS0Q','LIA0X':'ADC0','PID0':'LIA0','DAC0B':'PID0','LIA2Y':'DDS0Q','LIA2X':'ADC23','PID2':'LIA2','DAC1A':'PID2'}, {'DAC0':'DDS','DDS':'DAC0','ADC':'ON','LIA0':'ADC','PID0':'LIA0','LIA2':'ADC','PID2':'LIA2','DAC1':'PID2'})
-            self.config({'DAC0A':'DDS0I','LIA0Y':'DDS0Q','LIA0X':'ADC0','PID0':'LIA0','DAC0B':'PID0','PID2':'ADC23','DAC1A':'PID2'}, {'DAC0':'DDS','DDS':'DAC0','ADC':'ON','LIA0':'ADC','PID0':'LIA0','PID2':'ADC','DAC1':'PID2'})
-        
-        #self.views = [(0, 0, 'DDS', 'DDS0I', 'LIA0')]
-        #self.view.setItems([''])
-        #self.dds0.setValue(51200, 13, 0)
-        #self.lia0.setValue(0, 2, 9)
-        #self.config({'LIA0X':'DDS0I', 'LIA0Y':'DDS0Q'}, {'DDS':'LIA0', 'LIA0':'DDS'})
+            self.config({'DAC0A':'DDS0I','LIA0Y':'DDS0Q','LIA0X':'ADC0','PID0':'LIA0','DAC0B':'PID0','LIA2Y':'ADC3','LIA2X':'ADC2','PID2':'LIA2','DAC1A':'PID2'}, {'DAC0':'DDS','DDS':'DAC0','ADC':'ON','LIA0':'ADC','PID0':'LIA0','LIA2':'ADC','PID2':'LIA2','DAC1':'PID2'})
         self.mojo.write(1, [0])

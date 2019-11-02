@@ -4,7 +4,7 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
     output reg    done;                               // ready
     input  [15:0] in0;                                  
     input  [15:0] in1;                                 
-    output [15:0] out;
+    output [31:0] out;
     input  [3:0]  shift;                                 
     reg    [2:0]  count;
     reg           s;
@@ -13,7 +13,7 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
     reg    [15:0] d;
     reg    [15:0] r;
     wire   [16:0] sub = {r[14:0],q[15]}-d;
-    assign        out = q;*/
+    assign        out = s ? (~q+1) : q;*/
     
     /*reg    [63:0] xi;
     reg    [63:0] yi;
@@ -28,7 +28,7 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
     reg [35:0] x36;
     wire [35:0] mul;
     assign mul = x36[34:17] * b18;
-    assign out = b18[15:0];
+    assign out = x36;
     always @ (posedge clk or posedge rst) begin
         if (rst) begin
             count <= 0;
@@ -47,16 +47,23 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
                   
                   if (shift == 4'h0) begin
                     s <= 0;
+                    //q <= in0;
                     b18 <= {in0[15],in0[15],in0};
                     count <= 0;
                     done <= 1;
                   end else if (shift == 4'hF) begin
                     s <= 0;
+                    //q <= in1;
                     b18 <= {2'b0,in1};
                     count <= 0;
                     done <= 1;
                   end else begin
                     s <= in0[15];
+                    
+                    /*q <= (in0[15] ? (~in0+1) : in0) >> (shift - 1);
+                    d <= in1 << (shift - 1);
+                    r <= (in0[15] ? (~in0+1) : in0) << (shift - 1);*/
+                    
                     xi <= in0 << (shift - 1);
                     b18 <= {2'b0,in1 << (shift - 1)};
                     x36 <= 0;
@@ -89,8 +96,7 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
                 3'd2: b18 <= ~mul[32:15] + 1'b1;
                 3'd3: begin x36 <= mul; b18 <= {2'b0,s?~xi+1'b1:xi}; end
                 3'd4: x36 <= mul;
-                3'd5: b18[15:0] <= x36[31:16] + |x36[15:13];
-                3'd6: b18[15:0] <= s ? (~b18[15:0] + 1'b1) : b18[15:0];
+                3'd5: x36 <= s ? (~x36+1) : x36;
                 endcase
                 if (count == 3'd6) begin
 
