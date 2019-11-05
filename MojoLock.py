@@ -18,10 +18,10 @@ else:
     from PyQt4.qcustomplot import *
 
 FPS = 1
-if True:
+if False:
     from MojoTask import MojoTask
-    #from Mojo import Mojo
-    from MockMojo import MockMojo as Mojo 
+    from Mojo import Mojo
+    #from MockMojo import MockMojo as Mojo 
     mojo = MojoTask(Mojo())
 else:
     from RemoteMojo import mojo_task as mojo
@@ -466,14 +466,15 @@ class PlotCtrl(QCustomPlot):
             rect.xy = self.menu.xy.isChecked()
         elif action == self.menu.save:
             path, _ = QFileDialog.getSaveFileName(self,"Save Data","","CSV Files (*.csv)")
-            if rect.xy:
-                data = [(int(i.key),int(i.value)) for i in rect.graph[0].data().values()]
-            else:
-                data = zip([int(i.value) for i in rect.graph[0].data().values()], [int(i.value) for i in rect.graph[1].data().values()])
-            with open(path, 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                for i in data:
-                    writer.writerow(i)
+            if path:
+                if rect.xy:
+                    data = [(int(i.key),int(i.value)) for i in rect.graph[0].data().values()]
+                else:
+                    data = zip([int(i.value) for i in rect.graph[0].data().values()], [int(i.value) for i in rect.graph[1].data().values()])
+                with open(path, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    for i in data:
+                        writer.writerow(i)
                     
         #if action == quitAction:
         #    qApp.quit()

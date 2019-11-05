@@ -154,7 +154,7 @@ def LOCK2(self, wait = 0):
     if not pid_o: return
     self.pid2.setSO(100, pid_o)
     self.pid2.setPAI(0, 2, -2048)
-    self.pid2.setPAI(0, 2, 1)
+    self.pid2.setPAI(0, 2, -2047)
     rect.xy = False
     rect.rescale = False
     rect.axis(1).setRange(pid_o-3000, pid_o+3000)
@@ -296,6 +296,10 @@ def Window_setState(self, state):
         else:
             self.plot.resetGrid(1, 1)
             self.timer_view = 0
+            #self.timer.stop()
+            #self.timer.start(500)
+            #self.setSize(4095)
+            #self.setSize(8191)
             self.views = [(0, 0, 'ADC', 'ADC2', 'ADC3')]
             self.view.setItems([''])
             self.dds0.setValue(5000, 2, 0)
@@ -303,7 +307,7 @@ def Window_setState(self, state):
             self.pid0.setSO(-32767, 0)
             self.pid0.setPAI(-32768, 2, -2048)
             self.pid0.setPAI(-32768, 2, 256)
-            self.lia2.setValue(0, 6, 8)
+            self.lia2.setValue(0, 0, 0, 0)
             self.pid2.setSO(-32767, 0)
             self.pid2.setPAI(-32768, 2, -2048)
             self.pid2.setPAI(-32768, 2, 256)

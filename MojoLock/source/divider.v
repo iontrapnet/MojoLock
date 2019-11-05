@@ -48,13 +48,13 @@ module divider (clk,rst,once,done,in0,in1,out,shift);
                   if (shift == 4'h0) begin
                     s <= 0;
                     //q <= in0;
-                    b18 <= {in0[15],in0[15],in0};
+                    x36 <= in0;
                     count <= 0;
                     done <= 1;
                   end else if (shift == 4'hF) begin
                     s <= 0;
                     //q <= in1;
-                    b18 <= {2'b0,in1};
+                    x36 <= in1;
                     count <= 0;
                     done <= 1;
                   end else begin
